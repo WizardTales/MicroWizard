@@ -36,6 +36,7 @@ const act = mc.act;
 mc.act = function (x, y, cb) {
   if (typeof y === 'function') {
     cb = y;
+    y = undefined;
   }
 
   if (typeof cb === 'function') {
