@@ -1,0 +1,13 @@
+.git
+.gitignore
+.gitmodules
+.gitlab-ci.yml
+.idea
+Dockerfile
+clientConfig
+coverage
+config.json
+config.json.template
+client-config.json.template
+logs
+nbproject
