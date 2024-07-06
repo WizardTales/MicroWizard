@@ -22,6 +22,31 @@ and we focus on the important part. Essential parts will be:
 - a secondary `actE` function, which is more explicit in its behavior
 - fast method lookups
 - fast duplicate call lookups
+- load balancing
+- circuit breaking
+- native promises for act
+
+We used `actAsync` everywhere a promisified `act`, if you used `act` in your
+project, this will break. You can monkey patch the act method of course very
+easily like
+
+```js
+const mc = new MicroWizard();
+const act = mc.act;
+mc.act = function (x, y, cb) {
+  if (typeof y === 'function') {
+    cb = y;
+  }
+
+  if (typeof cb === 'function') {
+    act(x)
+      .catch(cb)
+      .then((x) => cb(null, x));
+  } else {
+    act(x).catch(console.error);
+  }
+};
+```
 
 # Benchmarks
 
@@ -34,22 +59,29 @@ communicating over the wire, this will be obviously significantly slower.
 However here the in process performance comparison of different acts.
 
 ```
-✔ Moleculer*                   2.096.783 rps
-✔ Seneca*                         25.743 rps
-✔ MicroWizard*                   529.986 rps
-✔ MicroWizard2*                2.044.895 rps
-✔ MicroWizard2Str*             3.422.563 rps
-✔ MicroWizard2StrNoMix*        4.967.360 rps
-✔ MicroWizardStr*                675.521 rps
 
-   Moleculer*                 -57,79%      (2.096.783 rps)   (avg: 476ns)
-   Seneca*                    -99,48%         (25.743 rps)   (avg: 38μs)
-   MicroWizard*               -89,33%        (529.986 rps)   (avg: 1μs)
-   MicroWizard2*              -58,83%      (2.044.895 rps)   (avg: 489ns)
-   MicroWizard2Str*            -31,1%      (3.422.563 rps)   (avg: 292ns)
-   MicroWizard2StrNoMix*           0%      (4.967.360 rps)   (avg: 201ns)
-   MicroWizardStr*             -86,4%        (675.521 rps)   (avg: 1μs)
------------------------------------------------------------------------
+✔ Moleculer* 2.096.783 rps
+✔ Seneca* 25.743 rps
+✔ MicroWizard* 529.986 rps
+✔ MicroWizard2* 2.044.895 rps
+✔ MicroWizard2Str* 3.422.563 rps
+✔ MicroWizard2StrNoMix* 4.967.360 rps
+✔ MicroWizardStr\* 675.521 rps
+
+Moleculer* -57,79% (2.096.783 rps) (avg: 476ns)
+Seneca* -99,48% (25.743 rps) (avg: 38μs)
+MicroWizard* -89,33% (529.986 rps) (avg: 1μs)
+MicroWizard2* -58,83% (2.044.895 rps) (avg: 489ns)
+MicroWizard2Str* -31,1% (3.422.563 rps) (avg: 292ns)
+MicroWizard2StrNoMix* 0% (4.967.360 rps) (avg: 201ns)
+MicroWizardStr\* -86,4% (675.521 rps) (avg: 1μs)
+
+---
+
 ```
 
 We will link the benchmark repo soon here.
+
+```
+
+```
