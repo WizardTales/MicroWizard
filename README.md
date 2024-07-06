@@ -39,11 +39,11 @@ mc.act = function (x, y, cb) {
   }
 
   if (typeof cb === 'function') {
-    act(x)
+    act(x, y)
       .catch(cb)
       .then((x) => cb(null, x));
   } else {
-    act(x).catch(console.error);
+    act(x, y).catch(console.error);
   }
 };
 ```
