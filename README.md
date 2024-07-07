@@ -54,10 +54,18 @@ mc.act = function (x, y, cb) {
 While this is not the most important part for us (of course this actually
 saves us quite some money), here are some benchmarks.
 
-Already finished are the mostly compatible interfaces. Currently not yet
-communicating over the wire, this will be obviously significantly slower.
+This is the test system:
 
-However here the in process performance comparison of different acts.
+```
+Platform info:
+==============
+   Linux 6.9.7-arch1-1 x64
+   Node.JS: 18.14.2
+   V8: 10.2.154.26-node.22
+   11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz × 16
+```
+
+Here the in process performance comparison of different acts.
 
 ```
 
@@ -81,9 +89,53 @@ MicroWizardStr\* -86,4% (675.521 rps) (avg: 1μs)
 
 ```
 
-Communicating over TCP
+Communicating over TCP, first an interpolated benchmark. The library
+used does not actually take care of concurrency. So we added it manually.
+
+Seneca and Cote dropped their performance drastically down to a few rps (23)
+as soon as the concurrency raised over 2. Moleculer and our framework could
+sustain more than 10 in concurrency.
+
+We were able to max out both Moleculer and our framework. However these are not
+final numbers. The way we created concurrency is by executing always a batch at
+the specified concurrency level. If we would have respawned a finished request
+immediately and upheld the concurrency, we could probably get even higher
+numbers on both of the top performers.
+
+The methodology of this table is, that we multiplied the test result with the
+applied conccurency. We skip Cote in this table, since it failed already on
+a concurrency level of 2. So we show you now two tables for concurrency.
 
 ```
+Concurrency level: 2
+
+✔ Moleculer*                 26.568 rps
+✔ Seneca*                     5.972 rps
+✔ MicroWizardActE*           32.754 rps
+
+   Moleculer*            -18,88%         (26.568 rps)   (avg: 37μs)
+   Seneca*               -81,77%          ( 5.972 rps)   (avg: 167μs)
+   MicroWizardActE*           0%         (32.754 rps)   (avg: 30μs)
+
+```
+
+Here the high concurrency one.
+
+```
+Concurrency level: 1000
+
+✔ Moleculer*                     71.000 rps
+✔ MicroWizardActE*              105.000 rps
+
+   Moleculer*            -32,72%             (71.000 rps)   (avg: 6µs)
+   MicroWizardActE*           0%            (105.000 rps)   (avg: 9µs)
+
+```
+
+And to be complete, the last table. Running the test without setup concurrency.
+
+```
+Concurrency level: 1
 -----------------------------------------------------------------------
 Suite: Call remote actions
 ✔ Moleculer*                 26.016 rps

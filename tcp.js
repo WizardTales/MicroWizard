@@ -13,7 +13,7 @@ export const listen = function (opts, tp) {
     let listenAttempts = 0;
 
     const listener = Net.createServer({
-      noDelay: false
+      noDelay: true
     }, function (connection) {
       if (process.env.DEBUG) {
         console.log(
