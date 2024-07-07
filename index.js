@@ -17,21 +17,34 @@
 //   { session, data ... }
 // );
 
+import tp from './transfer.js';
+
+export const transport = tp;
+
 const convertPin = (pin) => {
   const r = /([a-zA-Z0-9_-]+)(?:\s+)?:([^,]+)/g;
   let t;
-  const final = [];
-  const match = [];
+  let final = [];
 
-  while ((t = r.exec(pin))) {
-    if (t[2] !== '*') {
-      final.push(t[0]);
-    } else {
-      match.push(t[1]);
+  if (typeof (pin) === 'object') {
+    final = Object.entries(pin).map(([x, y]) => {
+      if (y !== '*') {
+        return { p: `${x}:${y}`, c: 1 };
+      } else {
+        return { p: x, c: 2 };
+      }
+    });
+  } else {
+    while ((t = r.exec(pin))) {
+      if (t[2] !== '*') {
+        final.push({ p: t[0], c: 1 });
+      } else {
+        final.push({ p: t[1], c: 2 });
+      }
     }
   }
 
-  return { c: final.sort(), m: match.sort() };
+  return { c: final.sort((a, b) => a.p < b.p ? -1 : a.p < b.p ? 1 : 0) };
 };
 
 const convertData = (pin) => {
@@ -67,7 +80,7 @@ export default class Micro {
 
     if (y && this.#pinCache[x]) {
       const { pin, xConf } = this.#pinCache[x];
-      return pin.f({ pin: xConf, ...y });
+      return pin.f({ pin: xConf, data: y });
     }
     let pat;
     let patF;
@@ -87,30 +100,30 @@ export default class Micro {
       xConv = conv.o;
     };
 
-    if (typeof (y) === 'object') {
-      patF = Object.entries(y).reduce((o, [x, y]) => {
-        if (!FORBIDDEN[typeof (y)]) {
-          o.push(`${x}:${y}`);
-        }
+    // if (typeof (y) === 'object') {
+    //   patF = Object.entries(y).reduce((o, [x, y]) => {
+    //     if (!FORBIDDEN[typeof (y)]) {
+    //       o.push(`${x}:${y}`);
+    //     }
 
-        return o;
-      }, []);
-    } else if (typeof (y) === 'string') {
-      const conv = convertData(y);
-      patF = conv.c;
-      y = conv.o;
-    } else {
-      y = xConv;
-    }
+    //     return o;
+    //   }, []);
+    // } else if (typeof (y) === 'string') {
+    //   const conv = convertData(y);
+    //   patF = conv.c;
+    //   y = conv.o;
+    // } else {
+    //   y = xConv;
+    // }
 
     pat = pat.sort();
 
-    const pin = this.#matchPin([], patF);
-    if (typeof (x) === 'string') {
+    const pin = this.#matchPin([], pat);
+    if (typeof (x) === 'string' && pin.f) {
       this.#pinCache[x] = { xConv, pin };
     }
 
-    return pin.f({ pin: xConv, ...y });
+    return pin.f({ pin: xConv, data: y });
   }
 
   async act (x, y) {
@@ -155,7 +168,7 @@ export default class Micro {
 
     const pin = this.#matchPin(pat);
 
-    return pin.f({ pin: xConv, ...y });
+    return pin.f({ data: Object.assign({}, xConv, y) });
   }
 
   // this simply iterates over every object part since they are sorted non
@@ -165,9 +178,9 @@ export default class Micro {
   #matchPin (c, h) {
     let before = this.#pinDB;
 
-    if (h && this.#hash[h]) {
-      before = this.#hash[h.join(',')];
-      for (const o of c) {
+    if (h) {
+      before = this.#hash[h.join(',')] || before;
+      for (const o of h) {
         if (before.n[o]) {
           before = before.n[o];
         } else if (before.s[o.split(':')[0]]) {
@@ -177,11 +190,12 @@ export default class Micro {
       }
     } else {
       for (const o of c) {
+        let part;
         if (before.n[o]) {
           before = before.n[o];
-        } else if (before.s[o.split(':')[0]]) {
+        } else if ((part = before.s[o.split(':')[0]])) {
           // this equals a * map
-          before = before.s[o];
+          before = part;
         }
       }
     }
@@ -193,36 +207,35 @@ export default class Micro {
     }
   }
 
-  add (c, f) {
+  add (c, fu) {
+    const f = (d) => {
+      return fu(d.data);
+    };
     let before = this.#pinDB;
     const pin = convertPin(c);
 
     let i = 0;
     for (; i < pin.c.length; ++i) {
-      const o = pin.c[i];
-      if (before.n[o]) {
-        before = before.n[o];
+      const o = pin.c[i].p;
+      if (pin.c[i].c === 1) {
+        if (before.n[o]) {
+          before = before.n[o];
+        } else {
+          before.n[o] = { n: {}, s: {} };
+          before = before.n[o];
+        }
       } else {
-        before.n[o] = { n: {}, s: {} };
-        before = before.n[o];
-      }
-    }
-
-    this.#hash[pin.c.join(',')] = before;
-
-    if (pin.m.length) {
-      let i = 0;
-      for (; i < pin.m.length; ++i) {
-        const o = pin.m[i];
         if (before.s[o]) {
           // this equals a * map
           before = before.s[o];
         } else {
-          before.s[o] = { s: {} };
+          before.s[o] = { s: {}, n: {} };
           before = before.s[o];
         }
       }
     }
+
+    this.#hash[pin.c.join(',')] = before;
 
     before.f = f;
 
