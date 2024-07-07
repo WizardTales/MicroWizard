@@ -12,7 +12,9 @@ export const listen = function (opts, tp) {
     const connections = [];
     let listenAttempts = 0;
 
-    const listener = Net.createServer(function (connection) {
+    const listener = Net.createServer({
+      noDelay: false
+    }, function (connection) {
       if (process.env.DEBUG) {
         console.log(
           'listen',

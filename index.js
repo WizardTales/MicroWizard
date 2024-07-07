@@ -79,8 +79,8 @@ export default class Micro {
     }
 
     if (y && this.#pinCache[x]) {
-      const { pin, xConf } = this.#pinCache[x];
-      return pin.f({ pin: xConf, data: y });
+      const { pin, xConv } = this.#pinCache[x];
+      return pin.f({ pin: xConv, data: y });
     }
     let pat;
     let patF;
@@ -181,11 +181,12 @@ export default class Micro {
     if (h) {
       before = this.#hash[h.join(',')] || before;
       for (const o of h) {
+        let part;
         if (before.n[o]) {
           before = before.n[o];
-        } else if (before.s[o.split(':')[0]]) {
+        } else if ((part = before.s[o.split(':')[0]])) {
           // this equals a * map
-          before = before.s[o];
+          before = part;
         }
       }
     } else {
@@ -209,7 +210,7 @@ export default class Micro {
 
   add (c, fu) {
     const f = (d) => {
-      return fu(d.data);
+      return fu(d.data, d);
     };
     let before = this.#pinDB;
     const pin = convertPin(c);

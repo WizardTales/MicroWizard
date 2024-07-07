@@ -85,17 +85,20 @@ Communicating over TCP
 
 ```
 -----------------------------------------------------------------------
-
 Suite: Call remote actions
-✔ Moleculer*              26.228 rps
-✔ Seneca*                  5.689 rps
-✔ MicroWizard1*           27.332 rps
-✔ MicroWizard2*           27.930 rps
+✔ Moleculer*                 26.016 rps
+✔ Cote*                      34.258 rps
+✔ Seneca*                     5.610 rps
+✔ MicroWizard1*              26.248 rps
+✔ MicroWizard2*              26.844 rps
+✔ MicroWizardActE*           30.667 rps
 
-   Moleculer*          -6,09%         (26.228 rps)   (avg: 38μs)
-   Seneca*            -79,63%          (5.689 rps)   (avg: 175μs)
-   MicroWizard1*       -2,14%         (27.332 rps)   (avg: 36μs)
-   MicroWizard2*           0%         (27.930 rps)   (avg: 35μs)
+   Moleculer*            -24,06%         (26.016 rps)   (avg: 38μs)
+   Cote*                      0%         (34.258 rps)   (avg: 29μs)
+   Seneca*               -83,62%          (5.610 rps)   (avg: 178μs)
+   MicroWizard1*         -23,38%         (26.248 rps)   (avg: 38μs)
+   MicroWizard2*         -21,64%         (26.844 rps)   (avg: 37μs)
+   MicroWizardActE*      -10,48%         (30.667 rps)   (avg: 32μs)
 -----------------------------------------------------------------------
 ```
 

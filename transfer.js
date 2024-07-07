@@ -125,9 +125,15 @@ class TP {
     const output = {
       id: meta$.id,
       k: meta$.k || 'a',
-      args,
       sync: meta$.sync
     };
+
+    if (output.k === 'aE') {
+      output.p = meta$.p;
+      output.d = args;
+    } else {
+      output.args = args;
+    }
 
     return output;
   }
