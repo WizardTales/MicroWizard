@@ -1,7 +1,7 @@
 import visigoth from '@wzrdtales/visigoth';
 import { uid } from 'uid';
 
-class BalanceClient {
+export default class BalanceClient {
   instance = {};
   static defaults = {
     debug: {
@@ -15,6 +15,7 @@ class BalanceClient {
   };
 
   constructor (options) {
+    options = Object.assign({}, ...this.defaults, options);
     this.options = options;
     this.options.circuitBreaker = this.options.circuitBreaker || {
       closingTimeout: 1000,
@@ -22,13 +23,19 @@ class BalanceClient {
     };
   }
 
-  removeTarget (targetMap, pat, config) {
+  makeHandle (config) {
+    return (pat, func) => {
+      this.addTarget(config, pat, func);
+    };
+  }
+
+  removeTarget (targetMap, pg, pat, config) {
     const actionId = config.id;
     let found = false;
-    let targetState = targetMap[pat];
+    let targetState = targetMap[pg];
 
     targetState = targetState || { targets: {} };
-    targetMap = targetState[pat];
+    targetMap = targetState[pg];
 
     if (targetState.targets[actionId]) found = true;
 
@@ -45,17 +52,18 @@ class BalanceClient {
   addClient (msg) {
     const clientOptions = msg;
     const pg = ([clientOptions.pin] || clientOptions.pins).join(':::');
-    this.targets[pg] = this.targets[pg] || {};
-
-    this.addTarget(this.targets, {}, pg, { id: clientOptions.id });
+    if (!this.targets[pg]) {
+      this.targets[pg] = {};
+    }
 
     const model = 'consume';
+    const me = this;
 
     const send = function (msg, reply, meta) {
       const targetstate = this.targets[pg];
 
       if (targetstate) {
-        this[model](msg, targetstate, reply, meta);
+        me[model](this, msg, targetstate, reply, meta);
       } else return reply(new Error('no-target', { msg: msg }));
     };
 
@@ -71,10 +79,11 @@ class BalanceClient {
 
     this.targets[pg] = this.targets[pg] || {};
 
-    this.removeTarget(this.targets, pg, msg);
+    const pins = msg.config.pin ? [msg.config.pin] : msg.config.pins;
+    pins.forEach((pin) => this.removeTarget(this.targets, pg, pin, msg));
   }
 
-  consume (msg, targetState, done, meta) {
+  consume (mc, msg, targetState, done, meta) {
     let trys = 0;
 
     function tryCall () {
@@ -90,7 +99,7 @@ class BalanceClient {
         // }
 
         try {
-          target.action.call(msg, meta).then(function () {
+          target.action.call(mc, msg, meta).then(function () {
             stats.responseTime = new Date() - meta.start;
             done.apply(done, arguments);
           });
@@ -115,15 +124,15 @@ class BalanceClient {
     tryCall();
   }
 
-  addTarget (targetMap, config, pat, action) {
-    let targetState = targetMap[pat];
+  addTarget (config, pat, action) {
+    let targetState = this.targets[pat];
     let add = true;
 
     targetState = targetState || {
       targets: {},
       visigoth: visigoth(this.options.circuitBreaker)
     };
-    targetMap[pat] = targetState;
+    this.targets[pat] = targetState;
 
     const target = targetState.targets[action.id];
     if (target) add = false;

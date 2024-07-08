@@ -18,6 +18,9 @@
 // );
 
 import tp from './transfer.js';
+import Balancer from './balance.js';
+import { uid } from 'uid';
+import Promise from 'bluebird';
 
 export const transport = tp;
 
@@ -26,7 +29,7 @@ const convertPin = (pin) => {
   let t;
   let final = [];
 
-  if (typeof (pin) === 'object') {
+  if (typeof pin === 'object') {
     final = Object.entries(pin).map(([x, y]) => {
       if (y !== '*') {
         return { p: `${x}:${y}`, c: 1 };
@@ -44,7 +47,7 @@ const convertPin = (pin) => {
     }
   }
 
-  return { c: final.sort((a, b) => a.p < b.p ? -1 : a.p < b.p ? 1 : 0) };
+  return { c: final.sort((a, b) => (a.p < b.p ? -1 : a.p < b.p ? 1 : 0)) };
 };
 
 const convertData = (pin) => {
@@ -61,15 +64,108 @@ const convertData = (pin) => {
   return { c: final.sort(), o };
 };
 
-const FORBIDDEN = { undefined: true, object: true, function: true, symbol: true };
+const FORBIDDEN = {
+  undefined: true,
+  object: true,
+  function: true,
+  symbol: true
+};
 
 export default class Micro {
   #pinDB = { n: {}, s: {} };
   #hash = {};
   #pinCache = {};
   #convCache = {};
+  #register = {};
+  #balancer;
+  #transport;
+  #clients;
 
-  // constructor () {}
+  constructor (options) {
+    this.id = uid();
+    this.#balancer = new Balancer(options);
+    this.#transport = transport({}, this);
+    this.register('role:transport,cmd:listen');
+  }
+
+  async client (config) {
+    const { type, pin } = config;
+
+    if (type === 'balancer') {
+      this.#clients[pin] = this.#balancer.addClient(config);
+      this.#clients[pin].handle = this.#balancer.makeHandle(config);
+    } else if (type === 'web') throw new Error('not supported');
+    else {
+      const client = await Promise.fromCallback((reply) =>
+        this.#transport.client(config, reply)
+      );
+
+      const me = this;
+
+      let cl;
+      if (me.#clients[pin]) {
+        cl = me.#clients[pin];
+        const action = function (msg, meta) {
+          client.send.call(this, msg, meta);
+        };
+        action.id = uid();
+        cl.handle(pin, action);
+      }
+
+      this.add(pin, function (msg, meta) {
+        let _meta;
+        if (meta.pin) {
+          _meta = { p: meta.pin, k: 'aE', ...meta };
+        } else {
+          _meta = meta;
+        }
+
+        if (cl) {
+          return cl.send.call(this, msg, _meta);
+        } else {
+          return client.send.call(this, msg, _meta);
+        }
+      });
+    }
+  }
+
+  listen (msg) {
+    // theoretically multiple modes here, but we ignore that
+    return Promise.fromCallback((reply) => this.#transport.listen(msg, reply));
+  }
+
+  callInternal (pin, args) {
+    return this.#register[pin](args, { id: uid() });
+  }
+
+  register (pin, method) {
+    this.register[pin] = this.register[pin] || [];
+    this.register[pin].unshift(method);
+  }
+
+  async rPrior (msg) {
+    if (!msg.priorI$) {
+      msg.priorI$ = 0;
+    }
+
+    const pin = this.#register[msg.pin$];
+    const method = pin.fl[msg.priorI$++];
+
+    if (method) return method(msg);
+    else return {};
+  }
+
+  async prior (msg) {
+    if (!msg.priorI$) {
+      msg.priorI$ = 0;
+    }
+
+    const pin = this.#matchPin(msg.pin$);
+    const method = pin.fl[msg.priorI$++];
+
+    if (method) return method(msg);
+    else return {};
+  }
 
   async actE (x, y, opts = {}) {
     if (opts.mixin?.length) {
@@ -85,9 +181,9 @@ export default class Micro {
     let pat;
     let patF;
     let xConv;
-    if (typeof (x) === 'object') {
+    if (typeof x === 'object') {
       pat = Object.entries(x).reduce((o, [x, y]) => {
-        if (!FORBIDDEN[typeof (y)]) {
+        if (!FORBIDDEN[typeof y]) {
           o.push(`${x}:${y}`);
         }
 
@@ -98,7 +194,7 @@ export default class Micro {
       const conv = convertData(x);
       pat = conv.c;
       xConv = conv.o;
-    };
+    }
 
     // if (typeof (y) === 'object') {
     //   patF = Object.entries(y).reduce((o, [x, y]) => {
@@ -119,44 +215,49 @@ export default class Micro {
     pat = pat.sort();
 
     const pin = this.#matchPin([], pat);
-    if (typeof (x) === 'string' && pin.f) {
+    if (typeof x === 'string' && pin.f) {
       this.#pinCache[x] = { xConv, pin };
     }
 
-    return pin.f({ pin: xConv, data: y });
+    return pin.f({ pin$: xConv, data: y }, { id: uid() });
   }
 
   async act (x, y) {
     let pat;
     let xConv;
 
-    if (typeof (x) === 'string' && this.#convCache[x]) {
+    if (typeof x === 'string' && this.#convCache[x]) {
       ({ xConv, pat } = this.#convCache[x]);
-    } else if (typeof (x) === 'object') {
-      pat = Object.entries(x).reduce((o, [x, y]) => {
-        if (!FORBIDDEN[typeof (y)]) {
-          o.push(`${x}:${y}`);
-        }
+    } else if (typeof x === 'object') {
+      pat = Object.entries(x)
+        .reduce((o, [x, y]) => {
+          if (!FORBIDDEN[typeof y]) {
+            o.push(`${x}:${y}`);
+          }
 
-        return o;
-      }, []).sort();
+          return o;
+        }, [])
+        .sort();
       xConv = x;
     } else {
       const conv = convertData(x);
       pat = conv.c;
       xConv = conv.o;
       this.#convCache[x] = { pat, xConv };
-    };
+    }
 
-    if (typeof (y) === 'object') {
-      pat = [...pat, ...Object.entries(y).reduce((o, [x, y]) => {
-        if (!FORBIDDEN[typeof (y)]) {
-          o.push(`${x}:${y}`);
-        }
+    if (typeof y === 'object') {
+      pat = [
+        ...pat,
+        ...Object.entries(y).reduce((o, [x, y]) => {
+          if (!FORBIDDEN[typeof y]) {
+            o.push(`${x}:${y}`);
+          }
 
-        return o;
-      }, [])];
-    } else if (typeof (y) === 'string') {
+          return o;
+        }, [])
+      ];
+    } else if (typeof y === 'string') {
       const conv = convertData(x);
       pat = [...pat, conv.c];
       y = conv.o;
@@ -168,7 +269,10 @@ export default class Micro {
 
     const pin = this.#matchPin(pat);
 
-    return pin.f({ data: Object.assign({}, xConv, y) });
+    return pin.f(
+      { pin$: pin, data: Object.assign({}, xConv, y) },
+      { id: uid() }
+    );
   }
 
   // this simply iterates over every object part since they are sorted non
@@ -209,8 +313,8 @@ export default class Micro {
   }
 
   add (c, fu) {
-    const f = (d) => {
-      return fu(d.data, d);
+    const f = (d, meta) => {
+      return fu.call(this, d.data, d, meta);
     };
     let before = this.#pinDB;
     const pin = convertPin(c);
@@ -239,6 +343,8 @@ export default class Micro {
     this.#hash[pin.c.join(',')] = before;
 
     before.f = f;
+    before.fl = before.fl || [];
+    before.fl.unshift(f);
 
     return before;
   }
