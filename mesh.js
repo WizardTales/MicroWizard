@@ -15,6 +15,7 @@ import Discover from 'node-discover';
 import Ip from 'ip';
 import Optioner from 'optioner';
 import Promise from 'bluebird';
+import { pattern } from './index.js';
 
 const Joi = Optioner.Joi;
 
@@ -347,7 +348,7 @@ function mesh (options, mc) {
             function removeClient (meta, cleaningUp) {
               let baseLeft = false;
               if (closed) return;
-              if (meta.config.pin[0] === 'base:true,role:mesh') {
+              if (pattern(meta.config.pin[0]) === 'base:true,role:mesh') {
                 baseLeft = true;
                 --aliveBases;
                 if (baseName[meta.instance]) {
@@ -386,13 +387,15 @@ function mesh (options, mc) {
               if (
                 options.discover.rediscover &&
                 baseLeft === true &&
-                aliveBases < 1 &&
+                aliveBases < 2 &&
                 cleaningUp !== true
               ) {
                 const members = sneeze.members();
                 const rejoin = function rejoin () {
                   intern.findBases(mc, options, rif, function (foundBases) {
-                    if (foundBases.length === 0) { return setTimeout(rejoin, 1111); }
+                    if (foundBases.length === 0) {
+                      return setTimeout(rejoin, 1111);
+                    }
                     bases = foundBases;
 
                     // seneca.log.debug({
@@ -417,7 +420,12 @@ function mesh (options, mc) {
                         setTimeout(rejoin, 1111);
                       });
                     }
-                    sneeze._swim.join(bases);
+                    sneeze._swim.join(bases, (err) => {
+                      if (err) {
+                        console.log({ msg: 'rejoin failed, try again' });
+                        setTimeout(rejoin, 1111);
+                      }
+                    });
                   });
                 };
 
