@@ -142,7 +142,7 @@ function mesh (options, mc) {
       pin = pin || 'role:mesh,base:true';
     }
 
-    options.host = intern.resolve_interface(options.host, rif);
+    options.host = intern.resolveInterface(options.host, rif);
     const tag = options.tag;
 
     const listen = options.listen || [
@@ -154,280 +154,282 @@ function mesh (options, mc) {
 
     mc.register('init:mesh', init);
 
-    function init (msg, initDone) {
-      intern.find_bases(mc, options, rif, function (foundBases) {
-        bases = foundBases;
+    function init (msg) {
+      return Promise.fromCallback((initDone) => {
+        intern.findBases(mc, options, rif, function (foundBases) {
+          bases = foundBases;
 
-        // seneca.log.debug({
-        //   kind: 'mesh',
-        //   host: options.host,
-        //   port: options.port,
-        //   bases: bases,
-        //   options: options
-        // });
+          // seneca.log.debug({
+          //   kind: 'mesh',
+          //   host: options.host,
+          //   port: options.port,
+          //   bases: bases,
+          //   options: options
+          // });
 
-        const sneezeOpts = options.sneeze || {};
+          const sneezeOpts = options.sneeze || {};
 
-        sneezeOpts.preferCurrentMeta = true;
-        sneezeOpts.bases = bases;
-        sneezeOpts.isbase = isbase;
-        sneezeOpts.port = options.port || undefined;
-        sneezeOpts.host = options.host || undefined;
-        sneezeOpts.identifier = mc.id;
+          sneezeOpts.preferCurrentMeta = true;
+          sneezeOpts.bases = bases;
+          sneezeOpts.isbase = isbase;
+          sneezeOpts.port = options.port || undefined;
+          sneezeOpts.host = options.host || undefined;
+          sneezeOpts.identifier = mc.id;
 
-        sneezeOpts.monitor = sneezeOpts.monitor || {
-          active: !!options.monitor
-        };
+          sneezeOpts.monitor = sneezeOpts.monitor || {
+            active: !!options.monitor
+          };
 
-        sneezeOpts.tag =
-          undefined !== sneezeOpts.tag
-            ? sneezeOpts.tag
-            : undefined !== tag
-              ? tag === null
-                ? null
-                : 'mc~' + tag
-              : 'mc~mesh';
+          sneezeOpts.tag =
+            undefined !== sneezeOpts.tag
+              ? sneezeOpts.tag
+              : undefined !== tag
+                ? tag === null
+                  ? null
+                  : 'mc~' + tag
+                : 'mc~mesh';
 
-        mc.register(
-          'role:transport,cmd:listen',
-          intern.makeTransportListen(options, join, listen, initDone)
-        );
+          mc.register(
+            'role:transport,cmd:listen',
+            intern.makeTransportListen(options, join, listen, initDone)
+          );
 
-        // call seneca.listen as a convenience
-        // subsequent seneca.listen calls will still publish to network
-        if (options.auto) {
-          _.each(listen, function (listenOpts) {
-            if (options.host && listenOpts.host == null) {
-              listenOpts.host = options.host;
+          // call seneca.listen as a convenience
+          // subsequent seneca.listen calls will still publish to network
+          if (options.auto) {
+            _.each(listen, function (listenOpts) {
+              if (options.host && listenOpts.host == null) {
+                listenOpts.host = options.host;
+              }
+
+              if ((listenOpts.host && listenOpts.host[0]) === '@') {
+                listenOpts.host = rif(listenOpts.host.substring(1));
+              }
+
+              listenOpts.port =
+                listenOpts.port != null
+                  ? listenOpts.port
+                  : function () {
+                    return 50000 + Math.floor(10000 * Math.random());
+                  };
+
+              listenOpts.model = listenOpts.model || 'consume';
+
+              listenOpts.ismesh = true;
+
+              mc.listen(listenOpts);
+            });
+          }
+
+          function join (instance, rawConfig, done) {
+            const clientInstance = instance;
+            const config = utilClean(rawConfig || {}, { proto: false });
+            let aliveBases = 0;
+            const baseName = {};
+
+            if (!config.pin && !config.pins) {
+              config.pin = 'null:true';
             }
 
-            if ((listenOpts.host && listenOpts.host[0]) === '@') {
-              listenOpts.host = rif(listenOpts.host.substring(1));
+            config.pin = intern.resolve_pins(instance, config);
+            delete config.pins;
+
+            const instanceSneezeOpts = _.clone(sneezeOpts);
+            instanceSneezeOpts.identifier =
+              sneezeOpts.identifier + '~' + config.pin + '~' + Date.now();
+
+            sneeze = Sneeze(instanceSneezeOpts);
+
+            const meta = {
+              config: utilClean(config),
+              instance: instance.id
+            };
+            const instanceMeta = meta;
+
+            sneeze.on('error', function (err) {
+              // seneca.log.warn(err);
+              if (err) {
+                console.log(err);
+              }
+            });
+            sneeze.on('add', addClient);
+            sneeze.on('remove', removeClient);
+            sneeze.on('ready', done);
+
+            mc.register('role:mc,cmd:close', function (msg) {
+              closed = true;
+              if (sneeze) {
+                sneeze.leave();
+              }
+              return this.rPrior(msg, meta);
+            });
+
+            mc.add('role:mesh,get:members', async function getMembers (msg) {
+              const members = [];
+
+              _.each(sneeze.members(), function (member) {
+                const m = options.makeEntry(member);
+                members.push(
+                  undefined === m ? intern.defaultMakeEntry(member) : m
+                );
+              });
+
+              const out = await this.prior(msg, meta).catch((err) => {
+                throw err;
+              });
+              const list = (out && out.list) || [];
+              const outlist = list.concat(members);
+
+              return { list: outlist };
+            });
+
+            sneeze.join(meta);
+
+            function addClient (meta) {
+              if (closed) return;
+              if (
+                meta.config.pin[0] === 'base:true,role:mesh' &&
+                !baseName[meta.instance]
+              ) {
+                ++aliveBases;
+                baseName[meta.instance] = true;
+              }
+              // ignore myself
+              if (clientInstance.id === meta.instance) {
+                return;
+              }
+
+              const config = meta.config || {};
+              const pins = intern.resolve_pins(clientInstance, config);
+
+              _.each(pins, async function (pin) {
+                const pinConfig = intern.makePinConfig(
+                  clientInstance,
+                  meta,
+                  pin,
+                  config
+                );
+
+                const hasBalanceClient = !!balanceMap[pinConfig.pin];
+                const targetMap = (balanceMap[pinConfig.pin] =
+                  balanceMap[pinConfig.pin] || {});
+
+                // this is a duplicate, so ignore
+                if (targetMap[pinConfig.id]) {
+                  return;
+                }
+
+                // TODO: how to handle local override?
+                const actmeta = clientInstance.find(pin);
+                const ignoreClient = !!(actmeta && !actmeta.client);
+
+                if (ignoreClient) {
+                  return;
+                }
+
+                targetMap[pinConfig.id] = true;
+
+                if (!hasBalanceClient) {
+                  // no balancer for this pin, so add one
+                  await clientInstance.client({
+                    type: 'balance',
+                    pin: pin,
+                    model: config.model
+                  });
+                }
+
+                clientInstance.client({
+                  ...pinConfig
+                });
+              });
             }
 
-            listenOpts.port =
-              listenOpts.port != null
-                ? listenOpts.port
-                : function () {
-                  return 50000 + Math.floor(10000 * Math.random());
+            function removeClient (meta, cleaningUp) {
+              let baseLeft = false;
+              if (closed) return;
+              if (meta.config.pin[0] === 'base:true,role:mesh') {
+                baseLeft = true;
+                --aliveBases;
+                if (baseName[meta.instance]) {
+                  delete baseName[meta.instance];
+                }
+              }
+
+              // ignore myself
+              if (clientInstance.id === meta.instance) {
+                return;
+              }
+
+              const config = meta.config || {};
+              const pins = intern.resolve_pins(clientInstance, config);
+
+              _.each(pins, function (pin) {
+                const pinConfig = intern.makePinConfig(
+                  clientInstance,
+                  meta,
+                  pin,
+                  config
+                );
+
+                const targetMap = balanceMap[pinConfig.pin];
+
+                if (targetMap) {
+                  delete targetMap[pinConfig.id];
+                }
+
+                clientInstance.removeClient({
+                  config: pinConfig,
+                  meta: meta
+                });
+              });
+
+              if (
+                options.discover.rediscover &&
+                baseLeft === true &&
+                aliveBases < 1 &&
+                cleaningUp !== true
+              ) {
+                const members = sneeze.members();
+                const rejoin = function rejoin () {
+                  intern.findBases(mc, options, rif, function (foundBases) {
+                    if (foundBases.length === 0) { return setTimeout(rejoin, 1111); }
+                    bases = foundBases;
+
+                    // seneca.log.debug({
+                    //   kind: 'mesh',
+                    //   host: options.host,
+                    //   port: options.port,
+                    //   bases: bases,
+                    //   options: options
+                    // });
+
+                    sneezeOpts.bases = bases;
+
+                    // retry on error
+                    if (isbase) {
+                      sneeze.once('retry', function () {
+                        // sneeze.leave();
+                        setTimeout(rejoin, 1111);
+                      });
+                    } else {
+                      sneeze.once('error', function () {
+                        // sneeze.leave();
+                        setTimeout(rejoin, 1111);
+                      });
+                    }
+                    sneeze._swim.join(bases);
+                  });
                 };
 
-            listenOpts.model = listenOpts.model || 'consume';
-
-            listenOpts.ismesh = true;
-
-            mc.listen(listenOpts);
-          });
-        }
-
-        function join (instance, rawConfig, done) {
-          const clientInstance = instance;
-          const config = utilClean(rawConfig || {}, { proto: false });
-          let aliveBases = 0;
-          const baseName = {};
-
-          if (!config.pin && !config.pins) {
-            config.pin = 'null:true';
-          }
-
-          config.pin = intern.resolve_pins(instance, config);
-          delete config.pins;
-
-          const instanceSneezeOpts = _.clone(sneezeOpts);
-          instanceSneezeOpts.identifier =
-            sneezeOpts.identifier + '~' + config.pin + '~' + Date.now();
-
-          sneeze = Sneeze(instanceSneezeOpts);
-
-          const meta = {
-            config: utilClean(config),
-            instance: instance.id
-          };
-          const instanceMeta = meta;
-
-          sneeze.on('error', function (err) {
-            // seneca.log.warn(err);
-            if (err) {
-              //
-            }
-          });
-          sneeze.on('add', addClient);
-          sneeze.on('remove', removeClient);
-          sneeze.on('ready', done);
-
-          mc.register('role:mc,cmd:close', function (msg) {
-            closed = true;
-            if (sneeze) {
-              sneeze.leave();
-            }
-            return this.rPrior(msg);
-          });
-
-          mc.add('role:mesh,get:members', async function getMembers (msg) {
-            const members = [];
-
-            _.each(sneeze.members(), function (member) {
-              const m = options.makeEntry(member);
-              members.push(
-                undefined === m ? intern.defaultMakeEntry(member) : m
-              );
-            });
-
-            const out = await this.prior(msg).catch((err) => {
-              throw err;
-            });
-            const list = (out && out.list) || [];
-            const outlist = list.concat(members);
-
-            return { list: outlist };
-          });
-
-          sneeze.join(meta);
-
-          function addClient (meta) {
-            if (closed) return;
-            if (
-              meta.config.pin[0] === 'base:true,role:mesh' &&
-              !baseName[meta.instance]
-            ) {
-              ++aliveBases;
-              baseName[meta.instance] = true;
-            }
-            // ignore myself
-            if (clientInstance.id === meta.instance) {
-              return;
-            }
-
-            const config = meta.config || {};
-            const pins = intern.resolve_pins(clientInstance, config);
-
-            _.each(pins, async function (pin) {
-              const pinConfig = intern.makePinConfig(
-                clientInstance,
-                meta,
-                pin,
-                config
-              );
-
-              const hasBalanceClient = !!balanceMap[pinConfig.pin];
-              const targetMap = (balanceMap[pinConfig.pin] =
-                balanceMap[pinConfig.pin] || {});
-
-              // this is a duplicate, so ignore
-              if (targetMap[pinConfig.id]) {
-                return;
+                // Object.keys(members).forEach(function(member) {
+                //   removeClient(members[member].meta, true);
+                // });
+                // sneeze.leave();
+                setTimeout(rejoin, 1111);
               }
-
-              // TODO: how to handle local override?
-              const actmeta = clientInstance.find(pin);
-              const ignoreClient = !!(actmeta && !actmeta.client);
-
-              if (ignoreClient) {
-                return;
-              }
-
-              targetMap[pinConfig.id] = true;
-
-              if (!hasBalanceClient) {
-                // no balancer for this pin, so add one
-                await clientInstance.client({
-                  type: 'balance',
-                  pin: pin,
-                  model: config.model
-                });
-              }
-
-              clientInstance.client({
-                ...pinConfig
-              });
-            });
-          }
-
-          function removeClient (meta, cleaningUp) {
-            let baseLeft = false;
-            if (closed) return;
-            if (meta.config.pin[0] === 'base:true,role:mesh') {
-              baseLeft = true;
-              --aliveBases;
-              if (baseName[meta.instance]) {
-                delete baseName[meta.instance];
-              }
-            }
-
-            // ignore myself
-            if (clientInstance.id === meta.instance) {
-              return;
-            }
-
-            const config = meta.config || {};
-            const pins = intern.resolve_pins(clientInstance, config);
-
-            _.each(pins, function (pin) {
-              const pinConfig = intern.makePinConfig(
-                clientInstance,
-                meta,
-                pin,
-                config
-              );
-
-              const targetMap = balanceMap[pinConfig.pin];
-
-              if (targetMap) {
-                delete targetMap[pinConfig.id];
-              }
-
-              clientInstance.act('role:transport,type:balance,remove:client', {
-                config: pinConfig,
-                meta: meta
-              });
-            });
-
-            if (
-              options.discover.rediscover &&
-              baseLeft === true &&
-              aliveBases < 1 &&
-              cleaningUp !== true
-            ) {
-              const members = sneeze.members();
-              const rejoin = function rejoin () {
-                intern.find_bases(mc, options, rif, function (foundBases) {
-                  if (foundBases.length === 0) return setTimeout(rejoin, 1111);
-                  bases = foundBases;
-
-                  // seneca.log.debug({
-                  //   kind: 'mesh',
-                  //   host: options.host,
-                  //   port: options.port,
-                  //   bases: bases,
-                  //   options: options
-                  // });
-
-                  sneezeOpts.bases = bases;
-
-                  // retry on error
-                  if (isbase) {
-                    sneeze.once('retry', function () {
-                      // sneeze.leave();
-                      setTimeout(rejoin, 1111);
-                    });
-                  } else {
-                    sneeze.once('error', function () {
-                      // sneeze.leave();
-                      setTimeout(rejoin, 1111);
-                    });
-                  }
-                  sneeze._swim.join(bases);
-                });
-              };
-
-              // Object.keys(members).forEach(function(member) {
-              //   removeClient(members[member].meta, true);
-              // });
-              // sneeze.leave();
-              setTimeout(rejoin, 1111);
             }
           }
-        }
+        });
       });
     }
   });
@@ -439,14 +441,14 @@ function makeIntern () {
       let listenCount = 0;
       let lastMeshListenErr = null;
 
-      return async function (msg) {
+      return async function (msg, meta) {
         const mc = this;
         const ismesh = msg.config && msg.config.ismesh;
 
         // count of the mesh auto listens
         listenCount += ismesh ? 1 : 0;
 
-        const out = await mc.rPrior(msg).catch((err) => {
+        const out = await mc.rPrior(msg, meta).catch((err) => {
           lastMeshListenErr = ismesh ? err : lastMeshListenErr;
           throw err;
         });
@@ -470,7 +472,7 @@ function makeIntern () {
       };
     },
 
-    resolve_interface: function (spec, rif) {
+    resolveInterface: function (spec, rif) {
       let out = spec;
 
       spec = spec == null ? '' : spec;
@@ -486,7 +488,7 @@ function makeIntern () {
       return out;
     },
 
-    find_bases: function (mc, options, rif, done) {
+    findBases: function (mc, options, rif, done) {
       let bases = [];
 
       intern.addbase_funcmap.custom = function (mc, options, bases, next) {
@@ -497,7 +499,7 @@ function makeIntern () {
       };
 
       // order is significant
-      const addbases = ['defined', 'custom', 'registry', 'multicast', 'guess'];
+      const addbases = ['defined', 'custom', 'multicast', 'guess'];
 
       let abI = -1;
       let addbase;

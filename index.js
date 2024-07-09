@@ -21,6 +21,7 @@ import tp from './transfer.js';
 import Balancer from './balance.js';
 import { uid } from 'uid';
 import Promise from 'bluebird';
+import Mesh from './mesh.js';
 
 export const transport = tp;
 
@@ -50,7 +51,7 @@ const convertPin = (pin) => {
   return { c: final.sort((a, b) => (a.p < b.p ? -1 : a.p < b.p ? 1 : 0)) };
 };
 
-const convertData = (pin) => {
+export const convertData = (pin) => {
   const r = /([a-zA-Z0-9_-]+)(?:\s+)?:([^,]+)/g;
   let t;
   const final = [];
@@ -62,6 +63,11 @@ const convertData = (pin) => {
   }
 
   return { c: final.sort(), o };
+};
+
+export const pattern = (pin) => {
+  const { c } = convertData(pin);
+  return c.join(',');
 };
 
 const FORBIDDEN = {
@@ -79,13 +85,18 @@ export default class Micro {
   #register = {};
   #balancer;
   #transport;
-  #clients;
+  #clients = {};
+  #loaded = {};
 
-  constructor (options) {
+  constructor (options = {}) {
     this.id = uid();
     this.#balancer = new Balancer(options);
     this.#transport = transport({}, this);
-    this.register('role:transport,cmd:listen');
+    this.register('role:transport,cmd:listen', function (msg) {
+      return Promise.fromCallback((reply) =>
+        this.#transport.listen(msg.config, reply)
+      );
+    });
   }
 
   async client (config) {
@@ -112,7 +123,7 @@ export default class Micro {
         cl.handle(pin, action);
       }
 
-      this.add(pin, function (msg, meta) {
+      const func = function (msg, meta) {
         let _meta;
         if (meta.pin) {
           _meta = { p: meta.pin, k: 'aE', ...meta };
@@ -125,45 +136,69 @@ export default class Micro {
         } else {
           return client.send.call(this, msg, _meta);
         }
-      });
+      };
+
+      func.client = true;
+
+      if (Array.isArray(pin)) {
+        pin.map((pin) => this.add(pin, func));
+      } else {
+        this.add(pin, func);
+      }
+    }
+  }
+
+  removeClient (msg) {
+    return this.#balancer.removeClient(msg);
+  }
+
+  use (module, options) {
+    switch (module) {
+      case 'mesh':
+      case 'mesh-ng':
+        Mesh(options, this);
+        setTimeout(async () => {
+          await this.callInternal('init:mesh', {});
+          this.#loaded.mesh = true;
+        }, 500);
+        break;
     }
   }
 
   listen (msg) {
-    // theoretically multiple modes here, but we ignore that
-    return Promise.fromCallback((reply) => this.#transport.listen(msg, reply));
+    return this.callInternal('role:transport,cmd:listen', { config: msg });
   }
 
   callInternal (pin, args) {
-    return this.#register[pin](args, { id: uid() });
+    return this.#register[pin][0].call(this, args, { id: uid(), pin });
   }
 
   register (pin, method) {
-    this.register[pin] = this.register[pin] || [];
-    this.register[pin].unshift(method);
+    this.#register[pin] = this.#register[pin] || [];
+    this.#register[pin].unshift(method);
   }
 
-  async rPrior (msg) {
-    if (!msg.priorI$) {
-      msg.priorI$ = 0;
+  async rPrior (msg, meta) {
+    if (!meta.priorI) {
+      meta.priorI = 0;
     }
 
-    const pin = this.#register[msg.pin$];
-    const method = pin.fl[msg.priorI$++];
+    const pin = this.#register[meta.pin];
+    const method = pin[++meta.priorI];
 
-    if (method) return method(msg);
+    if (method) return method.call(this, msg);
     else return {};
   }
 
-  async prior (msg) {
-    if (!msg.priorI$) {
-      msg.priorI$ = 0;
+  async prior (msg, meta) {
+    if (!meta.priorI) {
+      meta.priorI = 0;
     }
 
-    const pin = this.#matchPin(msg.pin$);
-    const method = pin.fl[msg.priorI$++];
+    const pin = this.#matchPin(meta.pin);
+    const method = pin.fl[meta.priorI++];
 
-    if (method) return method(msg);
+    if (method) return method.call(this, msg);
     else return {};
   }
 
@@ -219,7 +254,35 @@ export default class Micro {
       this.#pinCache[x] = { xConv, pin };
     }
 
-    return pin.f({ pin$: xConv, data: y }, { id: uid() });
+    return pin.f({ data: y }, { id: uid(), pin: xConv });
+  }
+
+  find (x) {
+    let pat;
+    let xConv;
+
+    if (typeof x === 'string' && this.#convCache[x]) {
+      ({ xConv, pat } = this.#convCache[x]);
+    } else if (typeof x === 'object') {
+      pat = Object.entries(x)
+        .reduce((o, [x, y]) => {
+          if (!FORBIDDEN[typeof y]) {
+            o.push(`${x}:${y}`);
+          }
+
+          return o;
+        }, [])
+        .sort();
+      xConv = x;
+    } else {
+      const conv = convertData(x);
+      pat = conv.c;
+      xConv = conv.o;
+      this.#convCache[x] = { pat, xConv };
+    }
+
+    const pin = this.#matchPin(pat);
+    return pin.f;
   }
 
   async act (x, y) {
@@ -271,7 +334,7 @@ export default class Micro {
 
     return pin.f(
       { pin$: pin, data: Object.assign({}, xConv, y) },
-      { id: uid() }
+      { id: uid(), pin: xConv }
     );
   }
 

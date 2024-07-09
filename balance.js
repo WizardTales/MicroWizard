@@ -1,8 +1,9 @@
 import visigoth from '@wzrdtales/visigoth';
 import { uid } from 'uid';
+import { pattern } from './index.js';
 
 export default class BalanceClient {
-  instance = {};
+  targets = {};
   static defaults = {
     debug: {
       client_updates: false
@@ -15,7 +16,7 @@ export default class BalanceClient {
   };
 
   constructor (options) {
-    options = Object.assign({}, ...this.defaults, options);
+    options = Object.assign({}, BalanceClient.defaults, options);
     this.options = options;
     this.options.circuitBreaker = this.options.circuitBreaker || {
       closingTimeout: 1000,
@@ -25,17 +26,18 @@ export default class BalanceClient {
 
   makeHandle (config) {
     return (pat, func) => {
+      pat = pattern(pat);
       this.addTarget(config, pat, func);
     };
   }
 
-  removeTarget (targetMap, pg, pat, config) {
+  removeTarget (pg, pat, config) {
     const actionId = config.id;
     let found = false;
-    let targetState = targetMap[pg];
+    let targetState = this.targets[pg];
 
     targetState = targetState || { targets: {} };
-    targetMap = targetState[pg];
+    this.targets[pg] = targetState[pg];
 
     if (targetState.targets[actionId]) found = true;
 
@@ -51,7 +53,9 @@ export default class BalanceClient {
 
   addClient (msg) {
     const clientOptions = msg;
-    const pg = ([clientOptions.pin] || clientOptions.pins).join(':::');
+    const pg = ([clientOptions.pin] || clientOptions.pins)
+      .map(pattern)
+      .join(':::');
     if (!this.targets[pg]) {
       this.targets[pg] = {};
     }
@@ -74,12 +78,17 @@ export default class BalanceClient {
   }
 
   removeClient (msg) {
-    const clientOptions = msg;
-    const pg = ([clientOptions.pin] || clientOptions.pins).join(':::');
+    const pins = (
+      msg.config.pin
+        ? Array.isArray(msg.config.pin)
+          ? msg.config.pin
+          : Array(msg.config.pin)
+        : msg.config.pins
+    ).map(pattern);
 
+    const pg = pins.join(':::');
     this.targets[pg] = this.targets[pg] || {};
 
-    const pins = msg.config.pin ? [msg.config.pin] : msg.config.pins;
     pins.forEach((pin) => this.removeTarget(this.targets, pg, pin, msg));
   }
 
