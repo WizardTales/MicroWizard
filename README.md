@@ -49,6 +49,31 @@ mc.act = function (x, y, cb) {
 };
 ```
 
+# Why?
+
+We have seneca widely in use, so we needed something compatible as replacement.
+Writing modules for one of the other frameworks wouldn't have fit the bill. So
+I decided to rewrite it and reuse parts of seneca were it makes sense.
+
+I don't need to justify myself, but if you like to understand the reasoning:
+
+The other frameworks including seneca are either missing features we need, or
+just have too much baggage in total. We need something rock solid that can scale
+to infinity. If possible it should be fast (seneca got slower and not well
+maintained, which is why we turned away from it). Fast means more throughput per
+service, which equals in less money spend and lower latencies. Both are very
+important to us.
+
+The next thing is flexibility, how complicated it is to add things. In case
+of seneca, we consider the code to be actually unmaintainable, adding things
+is possible, but it wont live up to our standards, neither quality nor
+performance. This way we can add the necessary features. To name the most
+important Segmented Service discovery and fault detection by SWIM, load
+balancing with different algos + services themself can reject requests and
+get selected out temporarily by circuit breaking + tx retry (which is a
+loadbalancing strategy by itself). And general resilience against network
+errors with refeeding and deduplication.
+
 # Benchmarks
 
 While this is not the most important part for us (of course this actually
