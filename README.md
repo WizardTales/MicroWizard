@@ -74,6 +74,25 @@ get selected out temporarily by circuit breaking + tx retry (which is a
 loadbalancing strategy by itself). And general resilience against network
 errors with refeeding and deduplication.
 
+Further we finally resolved issues we faced in some of our largest systems.
+Latency... . Due to time complexity in load balancing algorithms. Almost all non
+round robin algorithms tend to be quite costly. We usually have around 1-2k
+targets that go in a single load balancing algorithm. So this becomes quite
+heavy on high throughput and latency sensitive systems. We solve this with a
+(https://github.com/wzrdtales/visigoth-1/blob/fixup/balanceLinkedRing.js#L53)[linked list].
+This optimizes most of the things which tend to be issues when dealing with
+certain load balancing algorithms. The algorithm itself is round robin again,
+but with a few twists. If we want to add a weight to a certain machine, we assign
+an execution counter. The algorithm will then select the same target until the counter
+goes back to zero. If we encounter an overloaded or failing target, we circuit break
+the target and skip to the next (also ignoring any weights). So it is ultimately our services
+which tell requestors that they are over their threshold load, and not a central algorithm
+monitoring it. And last but not least the linked list allows very cheap adjustments
+of items. Either removing them, adding a new item, or updating their score.
+Removing has a time complexity of O(1), adding and moving an item O(log n). We could
+further optimize this with stored bins, but for our usecase this is more than enough,
+at least at the time of writing we have rather very short searches.
+
 # Benchmarks
 
 While this is not the most important part for us (of course this actually
