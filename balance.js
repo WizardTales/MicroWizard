@@ -1,6 +1,7 @@
 import visigoth from '@wzrdtales/visigoth';
 import { uid } from 'uid';
 import { pattern } from './index.js';
+import Promise from 'bluebird';
 
 export default class BalanceClient {
   targets = {};
@@ -15,7 +16,7 @@ export default class BalanceClient {
     'no-current-target': 'No targets are currently active for message <%=msg%>'
   };
 
-  constructor (options) {
+  constructor (options = {}) {
     options = Object.assign({}, BalanceClient.defaults, options);
     this.options = options;
     this.options.circuitBreaker = this.options.circuitBreaker || {
@@ -27,7 +28,7 @@ export default class BalanceClient {
   makeHandle (config) {
     return (pat, func) => {
       pat = pattern(pat);
-      this.addTarget(config, pat, func);
+      return this.addTarget(config, pat, func);
     };
   }
 
@@ -36,8 +37,10 @@ export default class BalanceClient {
     let found = false;
     let targetState = this.targets[pg];
 
-    targetState = targetState || { targets: {} };
-    this.targets[pg] = targetState[pg];
+    if (!targetState?.targets) {
+      targetState = { targets: {} };
+    }
+    this.targets[pg] = targetState;
 
     if (targetState.targets[actionId]) found = true;
 
@@ -63,12 +66,14 @@ export default class BalanceClient {
     const model = 'consume';
     const me = this;
 
-    const send = function (msg, reply, meta) {
-      const targetstate = this.targets[pg];
+    const send = function (msg, meta) {
+      const targetstate = me.targets[pg];
 
-      if (targetstate) {
-        me[model](this, msg, targetstate, reply, meta);
-      } else return reply(new Error('no-target', { msg: msg }));
+      if (targetstate.visigoth) {
+        return Promise.fromCallback((reply) =>
+          me[model](this, msg, targetstate, reply, meta)
+        );
+      } else return { err: 'no-target', msg };
     };
 
     return {
@@ -89,11 +94,12 @@ export default class BalanceClient {
     const pg = pins.join(':::');
     this.targets[pg] = this.targets[pg] || {};
 
-    pins.forEach((pin) => this.removeTarget(this.targets, pg, pin, msg));
+    pins.forEach((pin) => this.removeTarget(pg, pin, msg.config));
   }
 
   consume (mc, msg, targetState, done, meta) {
     let trys = 0;
+    const me = this;
 
     function tryCall () {
       targetState.visigoth.choose(function (err, target, errored, stats) {
@@ -107,26 +113,30 @@ export default class BalanceClient {
         //   meta.id = `${meta.mi}/${meta.tx}`;
         // }
 
-        try {
-          target.action.call(mc, msg, meta).then(function () {
+        target.action
+          .call(mc, msg, meta)
+          .then(function (msg, _meta) {
             stats.responseTime = new Date() - meta.start;
-            done.apply(done, arguments);
-          });
-        } catch (err) {
-          // seneca.log.error('execute_err', err);
-          if (err.details.message === 'retry_later_err_overload') {
-            // only error on controlled overload errors
-            errored();
-            if (++trys < 3) {
-              return setTimeout(
-                () => tryCall(),
-                this.options.circuitBreaker.retryTimeout
-              );
-            }
+            done(null, msg, _meta);
+          })
+          .catch((err) => {
+            // seneca.log.error('execute_err', err);
+            if (
+              err.details?.message === 'retry_later_err_overload' ||
+              err.message === 'timeout'
+            ) {
+              // only error on controlled overload errors
+              errored();
+              if (++trys < 3) {
+                return setTimeout(
+                  () => tryCall(),
+                  me.options.circuitBreaker.retryTimeout
+                );
+              }
 
-            return done({ err: 'all-targets-overloaded', msg });
-          }
-        }
+              return done({ err: 'all-targets-overloaded', msg });
+            }
+          });
       });
     }
 
@@ -137,10 +147,12 @@ export default class BalanceClient {
     let targetState = this.targets[pat];
     let add = true;
 
-    targetState = targetState || {
-      targets: {},
-      visigoth: visigoth(this.options.circuitBreaker)
-    };
+    if (!targetState?.targets) {
+      targetState = {
+        targets: {},
+        visigoth: visigoth(this.options.circuitBreaker)
+      };
+    }
     this.targets[pat] = targetState;
 
     const target = targetState.targets[action.id];
@@ -153,12 +165,12 @@ export default class BalanceClient {
         config: config
       };
 
-      const e = targetState.visigoth.add(target);
+      const { e } = targetState.visigoth.add(target);
       target.e = e;
       targetState.targets[action.id] = target;
     }
 
-    if (this.this.options.debug.client_updates) {
+    if (this.options.debug.client_updates) {
       console.log('add', pat, action.id, add);
     }
   }

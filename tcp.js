@@ -12,58 +12,61 @@ export const listen = function (opts, tp) {
     const connections = [];
     let listenAttempts = 0;
 
-    const listener = Net.createServer({
-      noDelay: true
-    }, function (connection) {
-      if (process.env.DEBUG) {
-        console.log(
-          'listen',
-          'connection',
-          listenOptions,
-          'remote',
-          connection.remoteAddress,
-          connection.remotePort
-        );
-      }
+    const listener = Net.createServer(
+      {
+        noDelay: true
+      },
+      function (connection) {
+        if (process.env.DEBUG) {
+          console.log(
+            'listen',
+            'connection',
+            listenOptions,
+            'remote',
+            connection.remoteAddress,
+            connection.remotePort
+          );
+        }
 
-      const parser = Ndjson.parse();
-      const stringifier = Ndjson.stringify();
-      parser.on('error', function (error) {
-        console.error(error);
-        connection.end();
-      });
-      parser.on('data', async (data) => {
-        if (data instanceof Error) {
-          const out = {};
-          out.input = data.input;
-          out.error = 'invalid_json';
+        const parser = Ndjson.parse();
+        const stringifier = Ndjson.stringify();
+        parser.on('error', function (error) {
+          console.error(error);
+          connection.end();
+        });
+        parser.on('data', async (data) => {
+          if (data instanceof Error) {
+            const out = {};
+            out.input = data.input;
+            out.error = 'invalid_json';
+
+            stringifier.write(out);
+            return;
+          }
+
+          const out = await tp.handleRequest(data, opts);
+          if (!out?.sync) {
+            return;
+          }
 
           stringifier.write(out);
-          return;
-        }
+        });
 
-        const out = await tp.handleRequest(data, opts);
-        if (!out?.sync) {
-          return;
-        }
+        connection.pipe(parser);
+        stringifier.pipe(connection);
 
-        stringifier.write(out);
-      });
+        connection.on('error', function (err) {
+          console.error(
+            'listen',
+            'pipe-error',
+            listenOptions,
+            err && err.stack
+          );
+        });
 
-      connection.pipe(parser);
-      stringifier.pipe(connection);
-
-      connection.on('error', function (err) {
-        console.error(
-          'listen',
-          'pipe-error',
-          listenOptions,
-          err && err.stack
-        );
-      });
-
-      connections.push(connection);
-    });
+        connections.push(connection);
+      }
+    );
 
     listener.once('listening', function () {
       listenOptions.port = listener.address().port;
@@ -143,24 +146,20 @@ export const client = function (options, tp) {
         console.log('client', type, 'send-init', '', '', clientOptions);
       }
 
-      const reconnect = internals.reconnect(function (stream) {
-        conStream = stream;
-        const msger = internals.clientMessager(
-          clientOptions,
-          tp
-        );
-        const parser = Ndjson.parse();
-        stringifier = Ndjson.stringify();
+      const reconnect = internals.reconnect(
+        { failAfter: clientOptions.failAfter || 3 },
+        function (stream) {
+          conStream = stream;
+          const msger = internals.clientMessager(clientOptions, tp);
+          const parser = Ndjson.parse();
+          stringifier = Ndjson.stringify();
 
-        stream
-          .pipe(parser)
-          .pipe(msger)
-          .pipe(stringifier)
-          .pipe(stream);
+          stream.pipe(parser).pipe(msger).pipe(stringifier).pipe(stream);
 
-        if (!established) reconnect.emit('s_connected', stringifier);
-        established = true;
-      });
+          if (!established) reconnect.emit('s_connected', stringifier);
+          established = true;
+        }
+      );
 
       reconnect.on('connect', function (connection) {
         if (process.env.DEBUG) {
@@ -192,15 +191,23 @@ export const client = function (options, tp) {
         established = false;
       });
       reconnect.on('error', function (err) {
+        console.log('client', type, 'error', '', '', clientOptions, err.stack);
+      });
+
+      reconnect.on('fail', function (err) {
         console.log(
           'client',
           type,
-          'error',
+          'fail',
           '',
           '',
           clientOptions,
-          err.stack
+          err,
+          err?.stack
         );
+
+        reconnect.disconnect();
+        internals.closeConnections([conStream]);
       });
 
       reconnect.connect({
@@ -228,8 +235,16 @@ export const client = function (options, tp) {
     const send = function (spec, topic, sendDone) {
       sendDone(null, function (args, done, meta) {
         // const self = this;
+        const timeout = setTimeout(() => {
+          done('timeout');
+        }, clientOptions.timeout);
+
         getClient(function (stringifier) {
-          const outmsg = tp.prepareRequest(args, done, meta);
+          function finish () {
+            clearTimeout(timeout);
+            done.apply(arguments);
+          }
+          const outmsg = tp.prepareRequest(args, finish, meta);
           if (!outmsg.replied) stringifier.write(outmsg);
         });
       });

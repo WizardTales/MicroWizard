@@ -24,7 +24,10 @@ class TP {
     };
 
     try {
-      const response = await this.mc[METHODS[data.k]](data.p || data.args, data.d);
+      const response = await this.mc[METHODS[data.k]](
+        data.p || data.args,
+        data.d
+      );
       out.res = response;
     } catch (err) {
       const errobj = Object.assign({}, err);
@@ -71,6 +74,8 @@ class TP {
         this.#context.callmap.delete(data.id);
       }, 100);
     } else {
+      // this can result when there was a slow request still answering after
+      // timeout
       if (this.#context.options.warn.unknown_message_id) {
         console.log('client', 'unknown_message_id', clientOptions, data);
       }
@@ -105,7 +110,7 @@ class TP {
         e.stack || e
       );
     }
-  };
+  }
 
   prepareRequest (args, done, meta) {
     const meta$ = meta || {};
@@ -151,7 +156,11 @@ class TP {
         },
 
         send: async function (args, meta) {
-          return Promise.fromCallback((done) => send.call(this, args, done, meta));
+          return Promise.fromCallback((done) =>
+            send.call(this, args, done, meta)
+          ).catch((x) => {
+            throw x;
+          });
         }
       };
 
@@ -185,10 +194,13 @@ export default function transport (opts, mc) {
     timeout: 5555,
     ...opts
   };
-  const tp = new TP({
-    callmap,
-    opts: settings
-  }, mc);
+  const tp = new TP(
+    {
+      callmap,
+      opts: settings
+    },
+    mc
+  );
 
   const listen = Tcp.listen(settings, tp);
   const client = Tcp.client(settings, tp);

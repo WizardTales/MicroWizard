@@ -90,8 +90,8 @@ export default class Micro {
 
   constructor (options = {}) {
     this.id = uid();
-    this.#balancer = new Balancer(options);
-    this.#transport = transport({}, this);
+    this.#balancer = new Balancer(options.balance);
+    this.#transport = transport(options.transport, this);
     this.register('role:transport,cmd:listen', function (msg) {
       return Promise.fromCallback((reply) =>
         this.#transport.listen(msg.config, reply)
@@ -102,7 +102,7 @@ export default class Micro {
   async client (config) {
     const { type, pin } = config;
 
-    if (type === 'balancer') {
+    if (type === 'balance') {
       this.#clients[pin] = this.#balancer.addClient(config);
       this.#clients[pin].handle = this.#balancer.makeHandle(config);
     } else if (type === 'web') throw new Error('not supported');
@@ -117,24 +117,28 @@ export default class Micro {
       if (me.#clients[pin]) {
         cl = me.#clients[pin];
         const action = function (msg, meta) {
-          client.send.call(this, msg, meta);
+          return client.send.call(this, msg, meta).catch((x) => {
+            throw x;
+          });
         };
-        action.id = uid();
+        action.id = config.id;
         cl.handle(pin, action);
       }
 
       const func = function (msg, meta) {
-        let _meta;
         if (meta.pin) {
-          _meta = { p: meta.pin, k: 'aE', ...meta };
-        } else {
-          _meta = meta;
+          meta.k = 'aE';
+          meta.p = meta.pin;
         }
 
         if (cl) {
-          return cl.send.call(this, msg, _meta);
+          return cl.send.call(this, msg, meta).catch((x) => {
+            throw x;
+          });
         } else {
-          return client.send.call(this, msg, _meta);
+          return client.send.call(this, msg, meta).catch((x) => {
+            throw x;
+          });
         }
       };
 
@@ -202,7 +206,9 @@ export default class Micro {
     else return {};
   }
 
-  async actE (x, y, opts = {}) {
+  async actE (x, y, opts = {}, meta = {}) {
+    meta.id = meta.id || uid();
+
     if (opts.mixin?.length) {
       for (const m of opts.mixin) {
         x = `${x},${m}:${y[m]}`;
@@ -211,7 +217,9 @@ export default class Micro {
 
     if (y && this.#pinCache[x]) {
       const { pin, xConv } = this.#pinCache[x];
-      return pin.f({ pin: xConv, data: y });
+      meta.pin = meta.pin || xConv;
+
+      return pin.f({ pin: xConv, data: y }, meta);
     }
     let pat;
     let patF;
@@ -254,7 +262,13 @@ export default class Micro {
       this.#pinCache[x] = { xConv, pin };
     }
 
-    return pin.f({ data: y }, { id: uid(), pin: xConv });
+    if (!pin.f) {
+      return console.log('no-target', pat);
+    }
+
+    meta.pin = meta.pin || xConv;
+
+    return pin.f({ data: y }, meta);
   }
 
   find (x) {
@@ -282,10 +296,11 @@ export default class Micro {
     }
 
     const pin = this.#matchPin(pat);
+
     return pin.f;
   }
 
-  async act (x, y) {
+  async act (x, y, meta = {}) {
     let pat;
     let xConv;
 
@@ -332,10 +347,14 @@ export default class Micro {
 
     const pin = this.#matchPin(pat);
 
-    return pin.f(
-      { pin$: pin, data: Object.assign({}, xConv, y) },
-      { id: uid(), pin: xConv }
-    );
+    if (!pin.f) {
+      return console.log('no-target', pat);
+    }
+
+    meta.id = meta.id || uid();
+    meta.pin = meta.pin || xConv;
+
+    return pin.f({ pin$: pin, data: Object.assign({}, xConv, y) }, meta);
   }
 
   // this simply iterates over every object part since they are sorted non
@@ -377,8 +396,14 @@ export default class Micro {
 
   add (c, fu) {
     const f = (d, meta) => {
-      return fu.call(this, d.data, d, meta);
+      meta.start = new Date() - 0;
+      return fu.call(this, d.data, meta);
     };
+
+    Object.entries(fu).forEach(([x, y]) => {
+      f[x] = y;
+    });
+
     let before = this.#pinDB;
     const pin = convertPin(c);
 
