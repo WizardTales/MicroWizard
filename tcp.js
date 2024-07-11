@@ -242,7 +242,7 @@ export const client = function (options, tp) {
         getClient(function (stringifier) {
           function finish () {
             clearTimeout(timeout);
-            done.apply(arguments);
+            done.apply(done, arguments);
           }
           const outmsg = tp.prepareRequest(args, finish, meta);
           if (!outmsg.replied) stringifier.write(outmsg);
