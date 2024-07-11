@@ -97,6 +97,104 @@ Removing has a time complexity of O(1), adding and moving an item O(log n). We c
 further optimize this with stored bins, but for our usecase this is more than enough,
 at least at the time of writing we have rather very short searches.
 
+# Developing and Debug (repl)
+
+MicroWizard is mostly compatible with seneca, but there are a lot of differences.
+So you can't expect any plugins to just work. The most important plugin is the
+repl plugin. This can be made to work with `@seneca/repl@5.1.0` and the following code
+
+```javascript
+'use strict';
+
+const repl = require('@seneca/repl');
+const jsonic = require('@jsonic/jsonic-next');
+const Promise = require('bluebird');
+const config = require('./config.js'); // optional
+const dns = require('dns');
+const os = require('os');
+
+function dnsSeed(seneca, options, bases, next) {
+  dns.lookup(
+    config.baseName,
+    {
+      all: true,
+      family: 4
+    },
+    (err, addresses) => {
+      let bases = [];
+
+      if (err) {
+        throw new Error('dns lookup for base node failed');
+      }
+
+      if (Array.isArray(addresses)) {
+        bases = addresses.map((address) => {
+          return address.address;
+        });
+      } else {
+        bases.push(addresses);
+      }
+
+      next(bases);
+    }
+  );
+}
+
+(async () => {
+  const { default: MicroWizard } = await import('microwizard');
+  const seneca = new MicroWizard();
+
+  const initialSenecaConfig = {
+    auto: true,
+    discover: {
+      custom: {
+        active: true,
+        find: dnsSeed
+      }
+    }
+  };
+
+  const senecaConfig = {
+    ...config.seneca,
+    ...initialSenecaConfig
+  };
+
+  if (senecaConfig.bases && senecaConfig.bases.indexOf(',')) {
+    senecaConfig.bases = senecaConfig.bases.split(',');
+  }
+
+  seneca.use('mesh-ng', senecaConfig);
+  // we need to add this interface, it does absolutely nothing but makes
+  // the call repl expects work
+  seneca.init = (cb) => cb(() => {});
+  // we patch the original jsonic in, to have the full jsonic parser available
+  // in repl
+  seneca.util.Jsonic = jsonic;
+  // the monkey patch for act since the plugin expects of course the callback
+  // interface
+  const act = seneca.act;
+  seneca.act = function (x, y, cb) {
+    if (typeof y === 'function') {
+      cb = y;
+      y = undefined;
+    }
+
+    if (typeof cb === 'function') {
+      act
+        .call(seneca, x, y)
+        .catch(cb)
+        .then((x) => cb(null, x));
+    } else {
+      act.call(seneca, x, y).catch(console.error);
+    }
+  };
+  // and finally instead of calling seneca.use, we make the plugin work by
+  // defining its context and just calling it
+  repl.call(seneca, { ...repl.defaults, ...config.repl });
+  // seneca.use('@seneca/repl', config.repl);
+})();
+```
+
 # Benchmarks
 
 While this is not the most important part for us (of course this actually
