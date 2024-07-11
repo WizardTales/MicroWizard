@@ -1,3 +1,12 @@
+/**
+ * Parts of this code are from the original module and under the following
+ * copyright.
+ *
+ * /* MIT License. Copyright (c) 2015-2018, Richard Rodger and other contributors.
+ * the rest of the code follows the following copyright
+ * /* Copyright (c) 2024 WizardTales GmbH, MIT License
+ */
+
 import visigoth from '@wzrdtales/visigoth';
 import { uid } from 'uid';
 import { pattern } from './index.js';

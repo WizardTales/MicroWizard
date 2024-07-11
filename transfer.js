@@ -1,3 +1,12 @@
+/**
+ * Parts of this code are from the original module and under the following
+ * copyright.
+ *
+ * /* Copyright (c) 2015-2017 Richard Rodger, MIT License
+ * the rest of the code follows the following copyright
+ * /* Copyright (c) 2024 WizardTales GmbH, MIT License
+ */
+
 import { LRUCache } from 'lru-cache';
 import * as Tcp from './tcp.js';
 import { uid } from 'uid';

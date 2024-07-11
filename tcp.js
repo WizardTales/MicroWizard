@@ -1,3 +1,6 @@
+/* Copyright (c) 2013-2015 Richard Rodger, MIT License */
+/* Copyright (c) 2024 WizardTales GmbH, MIT License */
+
 import Net from 'net';
 import Stream from 'stream';
 import Ndjson from 'ndjson';
