@@ -15,7 +15,7 @@ import Discover from 'node-discover';
 import Ip from 'ip';
 import Optioner from 'optioner';
 import Promise from 'bluebird';
-import { pattern } from './index.js';
+import { pattern, utilClean } from './index.js';
 
 const Joi = Optioner.Joi;
 
@@ -25,23 +25,6 @@ export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 39999;
 
 export const intern = makeIntern();
-
-function utilClean (obj, opts) {
-  if (obj == null) return obj;
-
-  const out = Array.isArray(obj) ? [] : {};
-
-  const pn = Object.getOwnPropertyNames(obj);
-  for (const pnI of pn) {
-    const p = pnI;
-
-    if (p[p.length - 1] !== '$') {
-      out[p] = obj[p];
-    }
-  }
-
-  return out;
-}
 
 function utilPattern (patobj) {
   if (typeof patobj === 'string') {

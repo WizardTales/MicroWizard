@@ -70,6 +70,23 @@ export const pattern = (pin) => {
   return c.join(',');
 };
 
+export const utilClean = function (obj, opts) {
+  if (obj == null) return obj;
+
+  const out = Array.isArray(obj) ? [] : {};
+
+  const pn = Object.getOwnPropertyNames(obj);
+  for (const pnI of pn) {
+    const p = pnI;
+
+    if (p[p.length - 1] !== '$') {
+      out[p] = obj[p];
+    }
+  }
+
+  return out;
+};
+
 const FORBIDDEN = {
   undefined: true,
   object: true,
@@ -89,6 +106,15 @@ export default class Micro {
   #loaded = {};
 
   constructor (options = {}) {
+    this.root = this;
+    this.log = {
+      error: (m, e) => console.error(m, e)
+    };
+    this.util = {
+      Jsonic: (x) => convertData(x).o,
+      clean: utilClean
+    };
+
     this.actAsync = this.act;
     this.id = uid();
     this.#balancer = new Balancer(options.balance);
@@ -98,6 +124,16 @@ export default class Micro {
         this.#transport.listen(msg.config, reply)
       );
     });
+  }
+
+  // no emitter yet
+  on () {}
+
+  delegate () {
+    const del = Object.create(this);
+    del.did = del.did ? `${del.did}/` : '' + uid();
+
+    return del;
   }
 
   async client (config) {
