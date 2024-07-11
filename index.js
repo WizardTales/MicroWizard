@@ -160,6 +160,7 @@ export default class Micro {
     switch (module) {
       case 'mesh':
       case 'mesh-ng':
+        this.#loaded.mesh = 'loading';
         Mesh(options, this);
         setTimeout(async () => {
           await this.callInternal('init:mesh', {});
@@ -167,6 +168,20 @@ export default class Micro {
         }, 500);
         break;
     }
+  }
+
+  ready (cb) {
+    if (this.#loaded.mesh === 'loading') {
+      setTimeout(() => {
+        this.ready(cb);
+      }, 500);
+
+      return false;
+    }
+
+    cb();
+
+    return true;
   }
 
   listen (msg) {
