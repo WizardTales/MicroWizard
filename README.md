@@ -300,4 +300,4 @@ Suite: Call remote actions
 -----------------------------------------------------------------------
 ```
 
-We will link the benchmark repo soon here.
+Here is the (https://github.com/WizardTales/microservice-benchmarks)[benchmark repo].
