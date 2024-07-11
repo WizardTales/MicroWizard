@@ -89,6 +89,7 @@ export default class Micro {
   #loaded = {};
 
   constructor (options = {}) {
+    this.actAsync = this.act;
     this.id = uid();
     this.#balancer = new Balancer(options.balance);
     this.#transport = transport(options.transport, this);
