@@ -131,10 +131,12 @@ export default class Micro {
   on () {}
 
   delegate () {
-    const del = Object.create(this);
-    del.did = del.did ? `${del.did}/` : '' + uid();
+    // in esm we can't do that, not so important for us though
+    return this;
+    // const del = Object.create(this);
+    // del.did = del.did ? `${del.did}/` : '' + uid();
 
-    return del;
+    // return del;
   }
 
   async client (config) {
