@@ -108,7 +108,8 @@ export default class Micro {
   constructor (options = {}) {
     this.root = this;
     this.log = {
-      error: (m, e) => console.error(m, e)
+      error: (m, e) => console.error(m, e),
+      info: (m, e) => console.log(m, e)
     };
     this.util = {
       Jsonic: (x) => convertData(x).o,
