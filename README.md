@@ -83,7 +83,7 @@ Latency... . Due to time complexity in load balancing algorithms. Almost all non
 round robin algorithms tend to be quite costly. We usually have around 1-2k
 targets that go in a single load balancing algorithm. So this becomes quite
 heavy on high throughput and latency sensitive systems. We solve this with a
-(https://github.com/wzrdtales/visigoth-1/blob/fixup/balanceLinkedRing.js#L53)[linked list].
+[https://github.com/wzrdtales/visigoth-1/blob/fixup/balanceLinkedRing.js#L53](linked list).
 This optimizes most of the things which tend to be issues when dealing with
 certain load balancing algorithms. The algorithm itself is round robin again,
 but with a few twists. If we want to add a weight to a certain machine, we assign
@@ -300,4 +300,4 @@ Suite: Call remote actions
 -----------------------------------------------------------------------
 ```
 
-Here is the (https://github.com/WizardTales/microservice-benchmarks)[benchmark repo].
+Here is the [https://github.com/WizardTales/microservice-benchmarks](benchmark repo).
