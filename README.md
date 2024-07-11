@@ -12,6 +12,10 @@ least, make it stable. There were certain issues we faced and some missing
 parts which we partially added, like a circuit breaker. However this has
 again neither been really maintainable, nor stable.
 
+Again this was created for us, no hate against seneca, they provided a great
+framework, we have used for years and we will speak out our support to them
+no matter what!
+
 This codebase will be quite straightforward, plugins will be mostly skipped
 and we focus on the important part. Essential parts will be:
 
