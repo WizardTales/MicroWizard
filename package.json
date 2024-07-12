@@ -19,7 +19,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@jsonic/jsonic-next": "^2.12.1",
     "@wzrdtales/visigoth": "^2.0.0",
     "bluebird": "^3.7.2",
     "ip": "^2.0.1",
