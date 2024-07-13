@@ -1,7 +1,7 @@
 'use strict';
 
 export default {
-  async challenge (request, h) {
+  async me (request, h) {
     const session = request.auth.credentials;
 
     const result = await request.seneca.actE('service:user,command:me', {
