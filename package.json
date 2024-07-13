@@ -1,6 +1,6 @@
 {
   "name": "microwizard",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "type": "module",
   "description": "A fast and stable microservice framework, mostly compatible with senecas user API",
   "main": "index.js",
