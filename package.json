@@ -17,7 +17,12 @@
     "seneca",
     "moleculer",
     "cote",
-    "framework"
+    "framework",
+    "scalable",
+    "distributed",
+    "service",
+    "rpc",
+    "WizardTales"
   ],
   "lint-staged": {
     "*.js": [
