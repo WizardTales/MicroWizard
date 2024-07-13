@@ -97,6 +97,124 @@ Removing has a time complexity of O(1), adding and moving an item O(log n). We c
 further optimize this with stored bins, but for our usecase this is more than enough,
 at least at the time of writing we have rather very short searches.
 
+# How to use?
+
+You can orient after the seneca docs to get an idea of how things are thought
+after. However here is the short guide.
+
+## Initializing the module
+
+You're using `import` style (module/esm).
+
+```javascript
+import MicroWizard from 'microwizard';
+const mw = new MicroWizard();
+
+// your code
+```
+
+You're using nodes cjs `require`.
+
+```javascript
+(async () => {
+  const { default: MicroWizard } = await import('microwizard');
+  const mw = new MicroWizard();
+
+  // your code
+})();
+```
+
+## Adding and consuming a function
+
+There are two functions `act` and `actE`. `actE` is faster but less flexible.
+However most people will not need the flexibility of `act`.
+
+Let's explain how to add a function first
+
+### add
+
+```javascript
+mw.add('service:test,command:math', (msg) => {
+  return { r: msg.a + msg.b };
+});
+```
+
+### act
+
+And now consume it with `act`
+
+```javascript
+const result = await mc.act(
+  'service:test',
+  { command: 'math', a: 1, b: 2 },
+  {
+    // you can set sync to false, in this case the called function will not answer
+    // your call. In case your service is calling another module that is not in process
+    // the target service will also not send any answer back over the network.
+    //
+    // If you want an answer, you can ignore the meta param completely.
+    // sync = false;
+    sync: true // this is the default, you can omit this last param completely
+  }
+);
+console.log(result);
+
+// returns { r: 3 }
+```
+
+This example quickly shows you all you need to know. The first parameter can receive
+a string or object, the same applies to the second. Everything on the root level of this
+two objects can be used to route to your target function. Read the [seneca docs](https://senecajs.org/api/#method-act) to understand this better.
+
+**!Important!**. We only take the root level of the objects into consideration for
+finding a matching pattern.
+
+### actE
+
+Now finally what is different about `actE`. This method works similar, but one important difference, only the first parameter is used by default for routing. Also the first paramis optimized to be fastest with jsonic like string (we do not support any quotes by the way which seneca does, the supported syntax is `key:value[,key:value,...]`). So we recommend to use the string syntax for the first parameter.
+
+The second parameter is used as our data object which contains the actual information forour target function.
+
+The third parameter is not meta, but an options parameter. This options parameter
+currently supports only one option which is `mixin`. With `mixin` you can specify an
+array of keys, of root level elments of your data object that you want to add to the
+pattern matching for the routing. This way we retain the flexibility of act, but with
+more control and maximum performance. The tradeoff is a little bit of comfort, but you
+will notice the few times you actually need to use `mixin` is rare, which is exactly why
+`actE` exists in the first place, usually you statically adress what you want to call.
+
+Everything else works like in `act`. Here a few calls that show you the same call but in different ways:
+
+```javascript
+const result = await mc.actE('service:test,command:math', { a: 1, b: 2 });
+console.log(result);
+
+// returns { r: 3 }
+
+result = await mc.actE('service:test', { command: 'math' a: 1, b: 2 }, { mixin: ['command'] });
+console.log(result);
+
+// returns { r: 3 }
+
+result = await mc.actE('service:test', { command: 'math' a: 1, b: 2 }, { mixin: ['command'] }, { sync: false });
+console.log(result);
+
+// returns immediately {} as the target service wont answer, if the service
+// resides inside the same process it could theoretically answer though.
+
+result = await mc.actE({ service: 'test' }, { command: 'math' a: 5, b: 2 }, { mixin: ['command'] });
+console.log(result);
+
+// returns { r: 7 }
+// last but not least, the first param can be an object as well. However
+// this is for dynamic purposes, and its not too slow as well, but the string based
+// object definition will outperform, so use this when you need it and not by default
+```
+
+## A starting point
+
+Look in the examples folder for a full project example. https://github.com/WizardTales/MicroWizard/tree/master/example/full
+
 # Developing and Debug (repl)
 
 MicroWizard is mostly compatible with seneca, but there are a lot of differences.

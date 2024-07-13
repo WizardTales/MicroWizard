@@ -1,0 +1,17 @@
+{
+  "name": "service1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.7.2",
+    "microwizard": "^1.2.5",
+    "microwizard-service-loader-es": "^1.6.3",
+    "sql-template-tag": "^5.2.1"
+  }
+}

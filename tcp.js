@@ -249,6 +249,10 @@ export const client = function (options, tp) {
           }
           const outmsg = tp.prepareRequest(args, finish, meta);
           if (!outmsg.replied) stringifier.write(outmsg);
+
+          if (!outmsg.sync) {
+            finish(null, {});
+          }
         });
       });
     };
