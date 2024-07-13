@@ -2,13 +2,23 @@
   "name": "microwizard",
   "version": "1.2.3",
   "type": "module",
-  "description": "",
+  "description": "A fast and stable microservice framework, mostly compatible with senecas user API",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lintfix": "lint-staged",
     "prepare": "husky"
   },
+  "keywords": [
+    "micro",
+    "wizard",
+    "microservice",
+    "microservices",
+    "seneca",
+    "molecular",
+    "cote",
+    "framework"
+  ],
   "lint-staged": {
     "*.js": [
       "pretty-quick --staged",
@@ -16,7 +26,7 @@
       "eslint --fix"
     ]
   },
-  "author": "",
+  "author": "Tobias Gurtzick <magic@wizardtales.com>",
   "license": "MIT",
   "dependencies": {
     "@wzrdtales/visigoth": "^2.0.0",
