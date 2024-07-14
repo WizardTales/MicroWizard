@@ -23,6 +23,7 @@ import { uid } from 'uid';
 import Promise from 'bluebird';
 import Mesh from './mesh.js';
 
+const start = process.hrtime.bigint();
 export const transport = tp;
 
 const convertPin = (pin) => {
@@ -274,7 +275,7 @@ export default class Micro {
       const { pin, xConv } = this.#pinCache[x];
       meta.pin = meta.pin || xConv;
 
-      return pin.f({ pin: xConv, data: y }, meta);
+      return pin.f({ data: y, msg: xConv }, meta);
     }
     let pat;
     let patF;
@@ -323,7 +324,7 @@ export default class Micro {
 
     meta.pin = meta.pin || xConv;
 
-    return pin.f({ data: y }, meta);
+    return pin.f({ data: y, msg: xConv }, meta);
   }
 
   find (x) {
@@ -450,10 +451,17 @@ export default class Micro {
   }
 
   add (c, fu) {
-    const f = (d, meta) => {
-      meta.start = new Date() - 0;
-      return fu.call(this, d.data, meta);
-    };
+    let f;
+    if (process.env.METRICS) {
+      f = (d, meta) => {
+        meta.start = Number(process.hrtime.bigint() - start);
+        return fu.call(this, d.data, meta);
+      };
+    } else {
+      f = (d, meta) => {
+        return fu.call(this, d.data, meta);
+      };
+    }
 
     Object.entries(fu).forEach(([x, y]) => {
       f[x] = y;
