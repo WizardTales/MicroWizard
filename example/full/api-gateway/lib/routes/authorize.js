@@ -11,7 +11,7 @@ export default (() => [
     config: {
       // validate: validate.me,
       handler: controller.me,
-      auth: { mode: 'required' } // use try when realizing a login itself that has no session yet
+      auth: { mode: 'try' } // use try when realizing a login itself that has no session yet
     }
   }
 ])();

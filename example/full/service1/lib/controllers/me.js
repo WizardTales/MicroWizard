@@ -33,6 +33,10 @@ export default {
     // scenarios were you want to use data for routing, in this case we place
     // those on the root level of the object and use mixin in case of `actE`
 
+    if (!session) {
+      return { code: 401, msg: 'not authorized!' };
+    }
+
     const {
       rows: [user]
     } = await pool.query(SQL`SELECT * FROM "user" WHERE "id" = ${session.id}`);
