@@ -8,7 +8,6 @@ export default (() => [
   {
     method: 'GET',
     path: '/me',
-    handler: controller.me,
     config: {
       // validate: validate.me,
       handler: controller.me,

@@ -31,9 +31,21 @@ importers:
       dataloader:
         specifier: ^1.4.0
         version: 1.4.0
+      es-main:
+        specifier: ^1.3.0
+        version: 1.3.0
       got:
         specifier: ^14.4.1
         version: 14.4.1
+      hapi-alive:
+        specifier: ^2.0.4
+        version: 2.0.4
+      hapi-graceful-shutdown-plugin:
+        specifier: ^2.0.8
+        version: 2.0.8
+      hapi-router-es:
+        specifier: ^5.1.3
+        version: 5.1.3(@hapi/hapi@20.3.0)
       microwizard:
         specifier: ^1.2.5
         version: 1.2.5
@@ -44,6 +56,13 @@ packages:
       {
         integrity: sha512-CmzBx/bXUR8451fnZRuZAJRlzgm0Jgu5dltTX/bszmR2lheb9BpyN47Q1RbaGTsvFzn0PXAEs+lXDKfshccYZw==
       }
+
+  '@hapi/address@2.1.4':
+    resolution:
+      {
+        integrity: sha512-QD1PhQk+s31P1ixsX0H0Suoupp3VMXzIVMSwobR3F3MSUO2YCV0B7xqLcUw/Bh8yuvd3LhpyqLQWTNcRmp6IdQ==
+      }
+    deprecated: Moved to 'npm install @sideway/address'
 
   '@hapi/address@4.1.0':
     resolution:
@@ -223,6 +242,13 @@ packages:
         integrity: sha512-zvGvWDufiTGpTJPG1Y/McN8UqWBu0k/xs/7l++HVU535NLHXsHhy54cfEMdW7EjwKfbBfM9Xy25FmTiobb7Hvw==
       }
 
+  '@hapi/joi@15.1.1':
+    resolution:
+      {
+        integrity: sha512-entf8ZMOK8sc+8YfeOlM8pCfg3b5+WZIKBfUaaJT8UsjAAPjartzxIYm3TIbjvA4u+u++KbcXD38k682nVHDAQ==
+      }
+    deprecated: Switch to 'npm install joi'
+
   '@hapi/joi@17.1.1':
     resolution:
       {
@@ -312,6 +338,13 @@ packages:
         integrity: sha512-1oPx9AE5TIv+V6Ih54RP9lTZBso3rP8j4Xhb6iSVwPXtAM+sDopl5TFMv5Paw73UnpZJ9gjcrTE1BXrWt9eQrg==
       }
     engines: { node: '>=12.0.0' }
+
+  '@hapi/topo@3.1.6':
+    resolution:
+      {
+        integrity: sha512-tAag0jEcjwH+P2quUfipd7liWCNX2F8NvYjQp2wtInsZxnMlypdw0FtAOLxtvvkO+GSRRbmNi8m/5y42PQJYCQ==
+      }
+    deprecated: This version has been deprecated and is no longer supported or maintained
 
   '@hapi/topo@5.1.0':
     resolution:
@@ -533,6 +566,12 @@ packages:
       }
     engines: { node: '>= 0.6' }
 
+  balanced-match@1.0.2:
+    resolution:
+      {
+        integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==
+      }
+
   bl@1.2.3:
     resolution:
       {
@@ -566,6 +605,12 @@ packages:
       }
     engines: { node: '>=6.0.0' }
     deprecated: This module has moved and is now available at @hapi/bourne. Please update your dependencies as this version is no longer maintained and may contain bugs and security issues.
+
+  brace-expansion@1.1.11:
+    resolution:
+      {
+        integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==
+      }
 
   buffer-alloc-unsafe@1.1.0:
     resolution:
@@ -605,6 +650,12 @@ packages:
         integrity: sha512-eX16KHiAYXugbFu6VifstSdwH6aMuWWb4s0qvpq1nR1b+Sf+u68jjttg8ixDBEldPqBi30bDU35OJQWKeTLKxg==
       }
     deprecated: This module has moved and is now available at @hapi/call. Please update your dependencies as this version is no longer maintained an may contain bugs and security issues.
+
+  cast-array@1.0.1:
+    resolution:
+      {
+        integrity: sha512-EiqtV+M9L42wd0IRgYjgVGDq7vdNBUUrdecd03QReJp8pIr59o2A1b0XfP+aCUlzLKx2E7zVetaogeJCtiHa+w==
+      }
 
   catbox-memory@4.0.1:
     resolution:
@@ -664,6 +715,9 @@ packages:
       {
         integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==
       }
+
+  concat-map@0.0.1:
+    resolution: { integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s= }
 
   console-control-strings@1.1.0:
     resolution:
@@ -775,6 +829,12 @@ packages:
         integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==
       }
 
+  es-main@1.3.0:
+    resolution:
+      {
+        integrity: sha512-AzORKdz1Zt97TzbYQnIrI3ZiibWpRXUfpo/w0xOJ20GpNYd2bd3MU9m31zS/aJ1TJl6JfLTok83Y8HjNunYT0A==
+      }
+
   escape-string-regexp@1.0.5:
     resolution:
       {
@@ -876,12 +936,40 @@ packages:
   github-from-package@0.0.0:
     resolution: { integrity: sha1-l/tdlr/eiXMxPyDoKI75oWf6ZM4= }
 
+  glob@5.0.15:
+    resolution:
+      {
+        integrity: sha512-c9IPMazfRITpmAAKi22dK1VKxGDX9ehhqfABDriL/lzO92xcUKEJPQHrVA/2YHSNFB4iFlykVmWvwo48nr3OxA==
+      }
+    deprecated: Glob versions prior to v9 are no longer supported
+
   got@14.4.1:
     resolution:
       {
         integrity: sha512-IvDJbJBUeexX74xNQuMIVgCRRuNOm5wuK+OC3Dc2pnSoh1AOmgc7JVj7WC+cJ4u0aPcO9KZ2frTXcqK4W/5qTQ==
       }
     engines: { node: '>=20' }
+
+  hapi-alive@2.0.4:
+    resolution:
+      {
+        integrity: sha512-+11iYjIdiVprzbeG+SOnvRo5ZMtpKfcN1fLfbMSSgJZ5fsyfjoLuvK5h9nt3a+KgExYbPY23fjtqPAblzhn6BA==
+      }
+
+  hapi-graceful-shutdown-plugin@2.0.8:
+    resolution:
+      {
+        integrity: sha512-iRksIB1/YEPgd/IWsR27UJO3tQqIOvsT0DpEPMi+IggbL3Ce4em1mADFfH+afpAs50/f8NW+egP7dYFjHBtjWg==
+      }
+    engines: { node: '>=8.0.0' }
+
+  hapi-router-es@5.1.3:
+    resolution:
+      {
+        integrity: sha512-SxYnbNT19CUfG7BcjXRiihonWgFoh3FKOZUF3xOt2upgkqrWqvbiwMB777K2+jwOIQwcrFXR2cWKyoFCtriY1Q==
+      }
+    peerDependencies:
+      '@hapi/hapi': '>= 18.3.1 < 21'
 
   hapi@18.1.0:
     resolution:
@@ -946,6 +1034,13 @@ packages:
       }
     engines: { node: '>=10.19.0' }
 
+  inflight@1.0.6:
+    resolution:
+      {
+        integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==
+      }
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+
   inherits@2.0.4:
     resolution:
       {
@@ -990,6 +1085,12 @@ packages:
         integrity: sha512-Dnz92NInDqYckGEUJv689RbRiTSEHCQ7wOVeALbkOz999YpqT46yMRIGtSNl2iCL1waAZSx40+h59NV/EwzV/A==
       }
     engines: { node: '>=18' }
+
+  isarray@0.0.1:
+    resolution:
+      {
+        integrity: sha512-D2S+3GLxWH+uhrNEcoh/fnmYeP8E8/zHl644d/jdA0g2uyXvy3sb0qxotE+ne0LtccHknQzWwZEzhak7oJ0COQ==
+      }
 
   isarray@1.0.0:
     resolution:
@@ -1138,6 +1239,12 @@ packages:
         integrity: sha512-5XBsDqBqzSN88XPPH/TFpOalWOjHJM5Z2d3AMx/30iq+qXvYKd/8MPhqBwZDOLtoaIWInR3nLzMQcxfGK9djXA==
       }
     deprecated: This module has moved and is now available at @hapi/mimos. Please update your dependencies as this version is no longer maintained an may contain bugs and security issues.
+
+  minimatch@3.1.2:
+    resolution:
+      {
+        integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==
+      }
 
   minimist@1.2.8:
     resolution:
@@ -1297,6 +1404,13 @@ packages:
         integrity: sha512-VeCrKYxgIoJ5RBpxogsoDiizLbZ2ZN+9ua+caIxe4e/a64kIzb9eVZ2CwWYd+arPbnM4N81lzlhTsHLtjSKJ0g==
       }
     engines: { node: '>= 4.0.0' }
+
+  path-is-absolute@1.0.1:
+    resolution:
+      {
+        integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==
+      }
+    engines: { node: '>=0.10.0' }
 
   pez@4.0.5:
     resolution:
@@ -1704,6 +1818,8 @@ snapshots:
       '@hapi/boom': 9.1.4
       '@hapi/hoek': 9.3.0
 
+  '@hapi/address@2.1.4': {}
+
   '@hapi/address@4.1.0':
     dependencies:
       '@hapi/hoek': 9.3.0
@@ -1838,6 +1954,13 @@ snapshots:
       '@hapi/cryptiles': 5.1.0
       '@hapi/hoek': 9.3.0
 
+  '@hapi/joi@15.1.1':
+    dependencies:
+      '@hapi/address': 2.1.4
+      '@hapi/bourne': 1.3.2
+      '@hapi/hoek': 8.5.1
+      '@hapi/topo': 3.1.6
+
   '@hapi/joi@17.1.1':
     dependencies:
       '@hapi/address': 4.1.0
@@ -1926,6 +2049,10 @@ snapshots:
       '@hapi/wreck': 17.2.0
 
   '@hapi/teamwork@5.1.1': {}
+
+  '@hapi/topo@3.1.6':
+    dependencies:
+      '@hapi/hoek': 8.5.1
 
   '@hapi/topo@5.1.0':
     dependencies:
@@ -2060,6 +2187,8 @@ snapshots:
     dependencies:
       precond: 0.2.3
 
+  balanced-match@1.0.2: {}
+
   bl@1.2.3:
     dependencies:
       readable-stream: 2.3.8
@@ -2077,6 +2206,11 @@ snapshots:
       hoek: 6.1.3
 
   bourne@1.3.3: {}
+
+  brace-expansion@1.1.11:
+    dependencies:
+      balanced-match: 1.0.2
+      concat-map: 0.0.1
 
   buffer-alloc-unsafe@1.1.0: {}
 
@@ -2103,6 +2237,10 @@ snapshots:
     dependencies:
       boom: 7.3.0
       hoek: 6.1.3
+
+  cast-array@1.0.1:
+    dependencies:
+      isarray: 0.0.1
 
   catbox-memory@4.0.1:
     dependencies:
@@ -2134,6 +2272,8 @@ snapshots:
   color-name@1.1.3: {}
 
   commander@2.20.3: {}
+
+  concat-map@0.0.1: {}
 
   console-control-strings@1.1.0: {}
 
@@ -2181,6 +2321,8 @@ snapshots:
   end-of-stream@1.4.4:
     dependencies:
       once: 1.4.0
+
+  es-main@1.3.0: {}
 
   escape-string-regexp@1.0.5: {}
 
@@ -2234,6 +2376,14 @@ snapshots:
 
   github-from-package@0.0.0: {}
 
+  glob@5.0.15:
+    dependencies:
+      inflight: 1.0.6
+      inherits: 2.0.4
+      minimatch: 3.1.2
+      once: 1.4.0
+      path-is-absolute: 1.0.1
+
   got@14.4.1:
     dependencies:
       '@sindresorhus/is': 6.3.1
@@ -2248,6 +2398,23 @@ snapshots:
       p-cancelable: 4.0.1
       responselike: 3.0.0
       type-fest: 4.21.0
+
+  hapi-alive@2.0.4:
+    dependencies:
+      '@hapi/boom': 7.4.11
+      '@hapi/hoek': 8.5.1
+      '@hapi/joi': 15.1.1
+
+  hapi-graceful-shutdown-plugin@2.0.8:
+    dependencies:
+      '@hapi/joi': 15.1.1
+
+  hapi-router-es@5.1.3(@hapi/hapi@20.3.0):
+    dependencies:
+      '@hapi/hapi': 20.3.0
+      bluebird: 3.7.2
+      cast-array: 1.0.1
+      glob: 5.0.15
 
   hapi@18.1.0:
     dependencies:
@@ -2293,6 +2460,11 @@ snapshots:
       quick-lru: 5.1.1
       resolve-alpn: 1.2.1
 
+  inflight@1.0.6:
+    dependencies:
+      once: 1.4.0
+      wrappy: 1.0.2
+
   inherits@2.0.4: {}
 
   ini@1.3.8: {}
@@ -2313,6 +2485,8 @@ snapshots:
       number-is-nan: 1.0.1
 
   is-stream@4.0.1: {}
+
+  isarray@0.0.1: {}
 
   isarray@1.0.0: {}
 
@@ -2400,6 +2574,10 @@ snapshots:
     dependencies:
       hoek: 6.1.3
       mime-db: 1.53.0
+
+  minimatch@3.1.2:
+    dependencies:
+      brace-expansion: 1.1.11
 
   minimist@1.2.8: {}
 
@@ -2500,6 +2678,8 @@ snapshots:
   pad@2.1.0:
     dependencies:
       wcwidth: 1.0.1
+
+  path-is-absolute@1.0.1: {}
 
   pez@4.0.5:
     dependencies:
