@@ -183,6 +183,10 @@ more control and maximum performance. The tradeoff is a little bit of comfort, b
 will notice the few times you actually need to use `mixin` is rare, which is exactly why
 `actE` exists in the first place, usually you statically adress what you want to call.
 
+Inside the function you specified during `add` you wont be able to access content on
+request.msg directly, instead to access the content of the first param, you need to
+access request.msg.msg
+
 Everything else works like in `act`. Here a few calls that show you the same call but in different ways:
 
 ```javascript
