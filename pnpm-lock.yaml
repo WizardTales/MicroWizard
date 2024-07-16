@@ -39,8 +39,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0
       sneeze-ng:
-        specifier: ^0.12.5
-        version: 0.12.5
+        specifier: ^0.13.0
+        version: 0.13.0
       uid:
         specifier: ^2.0.2
         version: 2.0.2
@@ -783,11 +783,6 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hoek@4.2.1:
-    resolution: {integrity: sha512-QLg82fGkfnJ/4iy1xZ81/9SIJiq1NGFUMGs6ParyjBZr6jW2Ufj/snDqTHixNlHdPNwN2RLVD0Pi3igeK9+JfA==}
-    engines: {node: '>=4.0.0'}
-    deprecated: This version has been deprecated in accordance with the hapi support policy (hapi.im/support). Please upgrade to the latest version to get the best features, bug fixes, and security patches. If you are unable to upgrade at this time, paid support is available for older versions (hapi.im/commercial).
-
   human-signals@1.1.1:
     resolution: {integrity: sha512-SEQu7vl8KjNL2eoGBLF3+wAjpsNfA9XMlXAYj/3EdaNfAlxKthD1xjEQfGOUhllCGGJVNY34bRr6lPINhNjyZw==}
     engines: {node: '>=8.12.0'}
@@ -929,17 +924,8 @@ packages:
   isarray@2.0.5:
     resolution: {integrity: sha512-xHjhDr3cNBK0BzdUJSPXZntQUx/mwMS5Rw4A7lPJ90XGAO6ISP/ePDNuo0vhqOZU+UD5JoodwCAAoZQd3FeAKw==}
 
-  isemail@3.2.0:
-    resolution: {integrity: sha512-zKqkK+O+dGqevc93KNsbZ/TqTUFd46MwWjYOoMrjIMZ51eU7DtQG3Wmd9SQQT7i7RVnuTPEiYEWHU3MSbxC1Tg==}
-    engines: {node: '>=4.0.0'}
-
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
-
-  joi@12.0.0:
-    resolution: {integrity: sha512-z0FNlV4NGgjQN1fdtHYXf5kmgludM65fG/JlXzU6+rwkt9U5UWuXVYnXa2FpK0u6+qBuCmrm5byPNuiiddAHvQ==}
-    engines: {node: '>=4.0.0'}
-    deprecated: This version has been deprecated in accordance with the hapi support policy (hapi.im/support). Please upgrade to the latest version to get the best features, bug fixes, and security patches. If you are unable to upgrade at this time, paid support is available for older versions (hapi.im/commercial).
 
   js-yaml@4.1.0:
     resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
@@ -1063,8 +1049,8 @@ packages:
     resolution: {integrity: sha512-P0efT1C9jIdVRefqjzOQ9Xml57zpOXnIuS+csaB4MdZbTdmGDLo8XhzBG1N7aO11gKDDkJvBLULeFTo46wwreA==}
     hasBin: true
 
-  msgpackr@1.10.2:
-    resolution: {integrity: sha512-L60rsPynBvNE+8BWipKKZ9jHcSGbtyJYIwjRq0VrIvQ08cRjntGXJYW/tmciZ2IHWIY8WEW32Qa2xbh5+SKBZA==}
+  msgpackr@1.11.0:
+    resolution: {integrity: sha512-I8qXuuALqJe5laEBYoFykChhSXLikZmUhccjGsPuSJ/7uPip2TJ7lwdIQwWSAi0jGZDXv4WOP8Qg65QZRuXxXw==}
 
   nan@2.20.0:
     resolution: {integrity: sha512-bk3gXBZDGILuuo/6sKtr0DQmSThYHLtNCdSdXk9YkxD/jK6X2vmCyyXBBxyqZ4XcnzTyYEAThfX3DCEnLf6igw==}
@@ -1156,9 +1142,6 @@ packages:
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
-
-  optioner@1.1.0:
-    resolution: {integrity: sha512-tYo5UTfFkflHjO6MIwoPFxR7ALhcUEEP+WZaNAn2iGRe0j9pvEsw0qWxtbxYqPyOs6xecWq3EAm/p19DV73jAw==}
 
   optioner@5.0.1:
     resolution: {integrity: sha512-WrR6M1H5JnK9lI/0TUDtSdqTwTSLOno4EZR4dC/NAJIz1Z8HePbo37eJqlrx8KP4YpB6lhrtl621gRPuOhgoLQ==}
@@ -1391,8 +1374,8 @@ packages:
     resolution: {integrity: sha512-FC+lgizVPfie0kkhqUScwRu1O/lF6NOgJmlCgK+/LYxDCTk8sGelYaHDhFcDN+Sn3Cv+3VSa4Byeo+IMCzpMgQ==}
     engines: {node: '>=12'}
 
-  sneeze-ng@0.12.5:
-    resolution: {integrity: sha512-ifgFUP8o6JyeK/W4/I6aVM/yJpz7hpAUBA54y8kyp+DSm6YNRXjZIWmIdC9BYI0HfR4CsHESujwxgi5yGWbhQw==}
+  sneeze-ng@0.13.0:
+    resolution: {integrity: sha512-IZjvt7JUeWitJGb4qXFeVenyivqJSO75swsAsifITaFKImA4UJ1wXHkkzAfU97z8s/9YDu1gC1jks6wvQwNSEg==}
 
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
@@ -1496,11 +1479,6 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
-
-  topo@2.1.1:
-    resolution: {integrity: sha512-ZPrPP5nwzZy1fw9abHQH2k+YarTgp9UMAztcB3MmlcZSif63Eg+az05p6wTDaZmnqpS3Mk7K+2W60iHarlz8Ug==}
-    engines: {node: '>=6.0.0'}
-    deprecated: This module has moved and is now available at @hapi/topo. Please update your dependencies as this version is no longer maintained and may contain bugs and security issues.
 
   tsconfig-paths@3.15.0:
     resolution: {integrity: sha512-2Ac2RgzDe/cn48GvOe3M+o82pEFewD3UPbyoUHHdKasHwJKjds4fLXWf/Ux5kATBKN20oaFGu+jbElp1pos0mg==}
@@ -1709,7 +1687,7 @@ snapshots:
       commander: 2.20.3
       debug: 2.6.9
       farmhash: 2.1.0
-      msgpackr: 1.10.2
+      msgpackr: 1.11.0
     transitivePeerDependencies:
       - supports-color
 
@@ -2407,8 +2385,6 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hoek@4.2.1: {}
-
   human-signals@1.1.1: {}
 
   human-signals@4.3.1: {}
@@ -2526,17 +2502,7 @@ snapshots:
 
   isarray@2.0.5: {}
 
-  isemail@3.2.0:
-    dependencies:
-      punycode: 2.3.1
-
   isexe@2.0.0: {}
-
-  joi@12.0.0:
-    dependencies:
-      hoek: 4.2.1
-      isemail: 3.2.0
-      topo: 2.1.1
 
   js-yaml@4.1.0:
     dependencies:
@@ -2668,7 +2634,7 @@ snapshots:
       '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.3
     optional: true
 
-  msgpackr@1.10.2:
+  msgpackr@1.11.0:
     optionalDependencies:
       msgpackr-extract: 3.0.3
 
@@ -2779,11 +2745,6 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
       word-wrap: 1.2.5
-
-  optioner@1.1.0:
-    dependencies:
-      hoek: 4.2.1
-      joi: 12.0.0
 
   optioner@5.0.1:
     dependencies:
@@ -3028,7 +2989,7 @@ snapshots:
       ansi-styles: 6.2.1
       is-fullwidth-code-point: 4.0.0
 
-  sneeze-ng@0.12.5:
+  sneeze-ng@0.13.0:
     dependencies:
       '@wzrdtales/swim-ng': 0.6.2
       ansi-escapes: 3.1.0
@@ -3037,7 +2998,7 @@ snapshots:
       keypress: 0.2.1
       lodash: 4.17.21
       nid: 0.3.2
-      optioner: 1.1.0
+      optioner: 5.0.1
       pad: 2.1.0
     transitivePeerDependencies:
       - supports-color
@@ -3154,10 +3115,6 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
-
-  topo@2.1.1:
-    dependencies:
-      hoek: 4.2.1
 
   tsconfig-paths@3.15.0:
     dependencies:

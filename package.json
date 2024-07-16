@@ -44,7 +44,7 @@
     "optioner": "^5.0.1",
     "reconnect-core": "^1.3.0",
     "rif": "^0.3.0",
-    "sneeze-ng": "^0.12.5",
+    "sneeze-ng": "^0.13.0",
     "uid": "^2.0.2"
   },
   "devDependencies": {
