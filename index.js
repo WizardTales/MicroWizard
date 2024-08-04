@@ -499,4 +499,8 @@ export default class Micro {
 
     return before;
   }
+
+  async close () {
+    return this.callInternal('role:mc,cmd:close', {});
+  }
 }
