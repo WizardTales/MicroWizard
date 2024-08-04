@@ -23,6 +23,8 @@ import { uid } from 'uid';
 import Promise from 'bluebird';
 import Mesh from './mesh.js';
 
+const sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
+
 const start = process.hrtime.bigint();
 export const transport = tp;
 
@@ -103,6 +105,8 @@ export default class Micro {
   #register = {};
   #balancer;
   #transport;
+  #stopped = false;
+  #active = 0;
   #clients = {};
   #loaded = {};
 
@@ -121,6 +125,18 @@ export default class Micro {
     this.id = uid();
     this.#balancer = new Balancer(options.balance);
     this.#transport = transport(options.transport, this);
+    this.register('role:mc,cmd:close', async function (msg) {
+      this.#stopped = true;
+      while (this.#active > 0) {
+        await sleep(500);
+      }
+
+      // give the last msgs a chance to be send out
+      await sleep(500);
+      await this.#transport.tp.close();
+
+      return { code: 200, msg: 'shutdown' };
+    });
     this.register('role:transport,cmd:listen', function (msg) {
       return Promise.fromCallback((reply) =>
         this.#transport.listen(msg.config, reply)
@@ -453,13 +469,29 @@ export default class Micro {
   add (c, fu) {
     let f;
     if (process.env.METRICS) {
-      f = (d, meta) => {
+      f = async (d, meta) => {
+        if (meta.n) {
+          ++this.#active;
+        }
+
         meta.start = Number(process.hrtime.bigint() - start);
-        return fu.call(this, d.data, meta);
+        const r = await fu.call(this, d.data, meta);
+
+        --this.#active;
+
+        return r;
       };
     } else {
-      f = (d, meta) => {
-        return fu.call(this, d.data, meta);
+      f = async (d, meta) => {
+        if (meta.n) {
+          ++this.#active;
+        }
+
+        const r = await fu.call(this, d.data, meta);
+
+        --this.#active;
+
+        return r;
       };
     }
 

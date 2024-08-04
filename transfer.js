@@ -16,6 +16,7 @@ const METHODS = { a: 'act', aE: 'actE' };
 
 class TP {
   #context;
+  #closeAction = [];
   constructor (context, mc) {
     this.#context = context;
     this.mc = mc;
@@ -35,7 +36,8 @@ class TP {
     try {
       const response = await this.mc[METHODS[data.k]](
         data.p || data.args,
-        data.d
+        data.d,
+        { n: true } // signal this came from the network
       );
       out.res = response;
     } catch (err) {
@@ -179,11 +181,11 @@ class TP {
 
   // graceful shutdown
   onClose (action) {
-    this.closeAction = action;
+    this.#closeAction.push(action);
   }
 
   async close () {
-    return this.closeAction();
+    return Promise.allSettled(this.#closeAction.map((x) => x()));
   }
 }
 
@@ -215,6 +217,7 @@ export default function transport (opts, mc) {
   const client = Tcp.client(settings, tp);
   return {
     listen,
-    client
+    client,
+    tp
   };
 }
