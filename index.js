@@ -144,7 +144,7 @@ export default class Micro {
     });
     this.register('role:transport,cmd:listen', function (msg) {
       return Promise.fromCallback((reply) =>
-        this.#transport.listen(msg.config, reply)
+        this.#transport.listen(msg.config, reply, () => this.reduceActive())
       );
     });
   }
@@ -294,7 +294,7 @@ export default class Micro {
 
     if (y && this.#pinCache[x]) {
       const { pin, xConv } = this.#pinCache[x];
-      meta.pin = meta.pin || xConv;
+      meta.pin = meta.pin || x;
 
       return pin.f({ data: y, msg: xConv }, meta);
     }
@@ -343,7 +343,7 @@ export default class Micro {
       return console.log('no-target', pat);
     }
 
-    meta.pin = meta.pin || xConv;
+    meta.pin = meta.pin || x;
 
     return pin.f({ data: y, msg: xConv }, meta);
   }
@@ -431,7 +431,6 @@ export default class Micro {
     }
 
     meta.id = meta.id || uid();
-    meta.pin = meta.pin || xConv;
 
     return pin.f({ pin$: pin, data: Object.assign({}, xConv, y) }, meta);
   }
@@ -442,98 +441,65 @@ export default class Micro {
   // we only support the wildcard (*) function as of now.
   #matchPin (c, h) {
     let before = this.#pinDB;
+    let t = c;
 
     const beforeParts = [];
     if (h) {
       before = this.#hash[h.join(',')] || before;
-      let u = 0;
-      const ll = { f: 0 };
+      t = h;
+    }
 
-      for (const o of h) {
-        let part;
+    let u = 0;
+    const ll = { f: 0 };
+    for (const o of t) {
+      let part;
+      const bP = beforeParts.length;
 
-        for (let i = 0; i < beforeParts.length; ++i) {
-          const beforePart = beforeParts[i].part;
-          const b = beforePart;
-          if (b.n[o]) {
-            beforeParts[i].d++;
-            beforeParts.push(b.n[o]);
-            if ((part = b.s[o.split(':')[0]])) {
-              beforeParts.push(part);
+      for (let i = 0; i < bP; ++i) {
+        const beforePart = beforeParts[i].part;
+        const b = beforePart;
+        if (b.n[o]) {
+          beforeParts[i].d++;
+          beforeParts[i].part = b.n[o];
+          if ((part = b.s[o.split(':')[0]])) {
+            beforeParts.push({ d: beforeParts[i].d, part });
+            if (i + 1 === beforeParts.length) {
+              beforeParts.push({ d: 0, part: this.#pinDB });
             }
-          } else if ((part = b.s[o.split(':')[0]])) {
-            // this equals a * map
-            beforeParts[i].d++;
-            beforeParts.push(part);
           }
-
-          if (beforeParts[i].d > ll.f) {
-            ll.f = beforeParts[i].d;
-            ll.p = beforeParts[i].part;
-          }
-        }
-
-        if (before.n[o]) {
-          before = before.n[o];
-          u++;
-          if ((part = before.s[o.split(':')[0]])) {
-            beforeParts.push(part);
-          }
-        } else if ((part = before.s[o.split(':')[0]])) {
+        } else if ((part = b.s[o.split(':')[0]])) {
           // this equals a * map
-          u++;
-          before = part;
+          beforeParts[i].d++;
+          beforeParts[i].part = part;
+        }
+
+        if (beforeParts[i].d > ll.f) {
+          ll.f = beforeParts[i].d;
+          ll.p = beforeParts[i].part;
         }
       }
 
-      if (ll.f > u && ll.p?.f) {
-        before = ll.p;
+      if (bP === 0) {
+        beforeParts.push({ d: 0, part: this.#pinDB });
       }
-    } else {
-      let u = 0;
-      const ll = { f: 0 };
-      for (const o of c) {
-        let part;
 
-        for (let i = 0; i < beforeParts.length; ++i) {
-          const beforePart = beforeParts[i].part;
-          const b = beforePart;
-          if (b.n[o]) {
-            beforeParts[i].d++;
-            beforeParts.push(b.n[o]);
-            if ((part = b.s[o.split(':')[0]])) {
-              beforeParts.push(part);
-            }
-          } else if ((part = b.s[o.split(':')[0]])) {
-            // this equals a * map
-            beforeParts[i].d++;
-            beforeParts.push(part);
-          }
+      part = undefined;
 
-          if (beforeParts[i].d > ll.f) {
-            ll.f = beforeParts[i].d;
-            ll.p = beforeParts[i].part;
-          }
+      if (before.n[o]) {
+        ++u;
+        before = before.n[o];
+        if ((part = before.s[o.split(':')[0]])) {
+          beforeParts.push({ d: u, part });
         }
-
-        part = undefined;
-
-        if (before.n[o]) {
-          ++u;
-          before = before.n[o];
-          if ((part = before.s[o.split(':')[0]])) {
-            beforeParts.push({ d: 0, part });
-          }
-        } else if ((part = before.s[o.split(':')[0]])) {
-          // this equals a * map
-          ++u;
-          before = part;
-        }
+      } else if ((part = before.s[o.split(':')[0]])) {
+        // this equals a * map
+        ++u;
+        before = part;
       }
+    }
 
-      if (ll.f > u && ll.p?.f) {
-        before = ll.p;
-      }
+    if ((!before.f || ll.f > u) && ll.p?.f) {
+      before = ll.p;
     }
 
     if (!before.f) {
@@ -543,36 +509,28 @@ export default class Micro {
     }
   }
 
+  reduceActive () {
+    this.#active--;
+  }
+
   add (c, fu) {
     let f;
     if (process.env.METRICS) {
-      f = async (d, meta) => {
+      f = (d, meta) => {
         if (meta.n === true) {
           ++this.#active;
         }
 
         meta.start = Number(process.hrtime.bigint() - start);
-        const r = await fu.call(this, d.data, meta);
-
-        if (meta.n === true) {
-          this.#active--;
-        }
-
-        return r;
+        return fu.call(this, d.data, meta);
       };
     } else {
-      f = async (d, meta) => {
+      f = (d, meta) => {
         if (meta.n === true) {
-          this.#active++;
+          ++this.#active;
         }
 
-        const r = await fu.call(this, d.data, meta);
-
-        if (meta.n === true) {
-          this.#active--;
-        }
-
-        return r;
+        return fu.call(this, d.data, meta);
       };
     }
 

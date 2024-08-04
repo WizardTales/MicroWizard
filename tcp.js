@@ -9,7 +9,7 @@ import Reconnect from 'reconnect-core';
 const internals = {};
 
 export const listen = function (opts, tp) {
-  return function (args, callback) {
+  return function (args, callback, reduceActive) {
     const listenOptions = { ...opts, ...args };
 
     const connections = [];
@@ -48,6 +48,7 @@ export const listen = function (opts, tp) {
           }
 
           const out = await tp.handleRequest(data, opts);
+          reduceActive();
           if (!out?.sync) {
             return;
           }

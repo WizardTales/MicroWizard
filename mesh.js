@@ -26,7 +26,7 @@ export const DEFAULT_PORT = 39999;
 
 export const intern = makeIntern();
 
-function utilPattern (patobj) {
+export const utilPattern = function (patobj) {
   if (typeof patobj === 'string') {
     return patobj;
   }
@@ -44,7 +44,7 @@ function utilPattern (patobj) {
   sb.sort();
 
   return sb.join(',');
-}
+};
 
 const optioner = Optioner({
   pin: Joi.alternatives().try(Joi.string(), Joi.object()),

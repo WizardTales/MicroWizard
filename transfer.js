@@ -22,7 +22,7 @@ class TP {
     this.mc = mc;
   }
 
-  async handleRequest (data, listenOptions) {
+  async handleRequest (data, listenOptions, reduceActive) {
     if (!['a', 'aE'].includes(data.k)) {
       return { input: data, error: 'unknown method' };
     }
@@ -37,6 +37,7 @@ class TP {
       const response = await this.mc[METHODS[data.k]](
         data.p || data.args,
         data.d,
+        { n: true }, // signal this came from the network
         { n: true } // signal this came from the network
       );
       out.res = response;
