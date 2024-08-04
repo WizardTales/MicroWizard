@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@wzrdtales/visigoth':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.0.3
+        version: 2.0.3
       bluebird:
         specifier: ^3.7.2
         version: 3.7.2
@@ -185,8 +185,8 @@ packages:
   '@wzrdtales/swim-ng@0.6.2':
     resolution: {integrity: sha512-rfHo0Z9a4X7xh/w3NzM5HUW6BIHZy4gwV2OTBhpHAYTEbKXRT2l/gj6nwDA/6UPVsvWl6pqvT5ZW2dMUt5MWJg==}
 
-  '@wzrdtales/visigoth@2.0.0':
-    resolution: {integrity: sha512-6Db9zVR64AQpe0Q43ddFTu7JzKCn9ZmScR9p0Y6PCuj2RRrAYDuQOjjpsKRYOD2aE7+i7h9bZD1e+0J8fBlwXQ==}
+  '@wzrdtales/visigoth@2.0.3':
+    resolution: {integrity: sha512-nWznSbGhbn+T1AmDxRIMwxmOFbCRfIPvjqsgd1mCyH7PQtciCY6Z5Q32oL2HHsft/Ah/9latpKZluHfmqDyIOg==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -1691,7 +1691,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@wzrdtales/visigoth@2.0.0':
+  '@wzrdtales/visigoth@2.0.3':
     dependencies:
       lodash: 4.17.21
 
