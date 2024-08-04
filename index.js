@@ -372,6 +372,8 @@ export default class Micro {
       this.#convCache[x] = { pat, xConv };
     }
 
+    pat = pat.sort();
+
     const pin = this.#matchPin(pat);
 
     return pin.f;
@@ -441,26 +443,96 @@ export default class Micro {
   #matchPin (c, h) {
     let before = this.#pinDB;
 
+    const beforeParts = [];
     if (h) {
       before = this.#hash[h.join(',')] || before;
+      let u = 0;
+      const ll = { f: 0 };
+
       for (const o of h) {
         let part;
+
+        for (let i = 0; i < beforeParts.length; ++i) {
+          const beforePart = beforeParts[i].part;
+          const b = beforePart;
+          if (b.n[o]) {
+            beforeParts[i].d++;
+            beforeParts.push(b.n[o]);
+            if ((part = b.s[o.split(':')[0]])) {
+              beforeParts.push(part);
+            }
+          } else if ((part = b.s[o.split(':')[0]])) {
+            // this equals a * map
+            beforeParts[i].d++;
+            beforeParts.push(part);
+          }
+
+          if (beforeParts[i].d > ll.f) {
+            ll.f = beforeParts[i].d;
+            ll.p = beforeParts[i].part;
+          }
+        }
+
         if (before.n[o]) {
           before = before.n[o];
+          u++;
+          if ((part = before.s[o.split(':')[0]])) {
+            beforeParts.push(part);
+          }
         } else if ((part = before.s[o.split(':')[0]])) {
           // this equals a * map
+          u++;
           before = part;
         }
       }
+
+      if (ll.f > u && ll.p?.f) {
+        before = ll.p;
+      }
     } else {
+      let u = 0;
+      const ll = { f: 0 };
       for (const o of c) {
         let part;
+
+        for (let i = 0; i < beforeParts.length; ++i) {
+          const beforePart = beforeParts[i].part;
+          const b = beforePart;
+          if (b.n[o]) {
+            beforeParts[i].d++;
+            beforeParts.push(b.n[o]);
+            if ((part = b.s[o.split(':')[0]])) {
+              beforeParts.push(part);
+            }
+          } else if ((part = b.s[o.split(':')[0]])) {
+            // this equals a * map
+            beforeParts[i].d++;
+            beforeParts.push(part);
+          }
+
+          if (beforeParts[i].d > ll.f) {
+            ll.f = beforeParts[i].d;
+            ll.p = beforeParts[i].part;
+          }
+        }
+
+        part = undefined;
+
         if (before.n[o]) {
+          ++u;
           before = before.n[o];
+          if ((part = before.s[o.split(':')[0]])) {
+            beforeParts.push({ d: 0, part });
+          }
         } else if ((part = before.s[o.split(':')[0]])) {
           // this equals a * map
+          ++u;
           before = part;
         }
+      }
+
+      if (ll.f > u && ll.p?.f) {
+        before = ll.p;
       }
     }
 
