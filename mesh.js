@@ -309,7 +309,7 @@ function mesh (options, mc) {
 
                 // TODO: how to handle local override?
                 const actmeta = clientInstance.find(pin?.[0] ?? pin);
-                const ignoreClient = !!(actmeta && actmeta.client);
+                const ignoreClient = !!(actmeta && !actmeta.client);
 
                 if (ignoreClient) {
                   return;
