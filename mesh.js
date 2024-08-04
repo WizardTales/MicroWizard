@@ -240,7 +240,7 @@ function mesh (options, mc) {
             sneeze.on('remove', removeClient);
             sneeze.on('ready', done);
 
-            mc.register('role:mc,cmd:close', function (msg) {
+            mc.register('role:mc,cmd:close', function (msg, meta) {
               closed = true;
               if (sneeze) {
                 sneeze.leave();
