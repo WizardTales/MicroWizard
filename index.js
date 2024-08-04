@@ -113,8 +113,8 @@ export default class Micro {
   constructor (options = {}) {
     if (options.debug) {
       setInterval(() => {
-        console.dir(this.#pinDB, { depth: null });
-      }, 2000);
+        console.dir(this.#clients, { depth: null });
+      }, 4000);
     }
     this.root = this;
     this.log = {
@@ -340,7 +340,7 @@ export default class Micro {
     }
 
     if (!pin.f) {
-      return console.log('no-target actE', pat);
+      return console.log('no-target', pat);
     }
 
     meta.pin = meta.pin || xConv;
@@ -425,7 +425,7 @@ export default class Micro {
     const pin = this.#matchPin(pat);
 
     if (!pin.f) {
-      return console.log('no-target act', pat);
+      return console.log('no-target', pat);
     }
 
     meta.id = meta.id || uid();
