@@ -294,6 +294,10 @@ function mesh (options, mc) {
                   config
                 );
 
+                if (pinConfig.pin === 'null:true') {
+                  return;
+                }
+
                 const hasBalanceClient = !!balanceMap[pinConfig.pin];
                 const targetMap = (balanceMap[pinConfig.pin] =
                   balanceMap[pinConfig.pin] || {});
@@ -317,7 +321,7 @@ function mesh (options, mc) {
                   // no balancer for this pin, so add one
                   await clientInstance.client({
                     type: 'balance',
-                    pin: pin,
+                    pin: pinConfig.pin,
                     model: config.model
                   });
                 }
@@ -354,6 +358,10 @@ function mesh (options, mc) {
                   pin,
                   config
                 );
+
+                if (pinConfig.pin === 'null:true') {
+                  return;
+                }
 
                 const targetMap = balanceMap[pinConfig.pin];
 
@@ -677,7 +685,7 @@ function makeIntern () {
       delete pinConfig.pins;
       delete pinConfig.pin;
 
-      pinConfig.pin = canonicalPin;
+      pinConfig.pin = canonicalPin?.[0] ?? canonicalPin;
       pinConfig.id = utilPattern(pinConfig) + '~' + meta.identifier$;
 
       return pinConfig;

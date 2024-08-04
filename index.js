@@ -111,6 +111,11 @@ export default class Micro {
   #loaded = {};
 
   constructor (options = {}) {
+    if (options.debug) {
+      setInterval(() => {
+        console.dir(this.#clients, { depth: null });
+      }, 2000);
+    }
     this.root = this;
     this.log = {
       error: (m, e) => console.error(m, e),
