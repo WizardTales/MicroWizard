@@ -470,26 +470,30 @@ export default class Micro {
     let f;
     if (process.env.METRICS) {
       f = async (d, meta) => {
-        if (meta.n) {
+        if (meta.n === true) {
           ++this.#active;
         }
 
         meta.start = Number(process.hrtime.bigint() - start);
         const r = await fu.call(this, d.data, meta);
 
-        --this.#active;
+        if (meta.n === true) {
+          this.#active--;
+        }
 
         return r;
       };
     } else {
       f = async (d, meta) => {
-        if (meta.n) {
-          ++this.#active;
+        if (meta.n === true) {
+          this.#active++;
         }
 
         const r = await fu.call(this, d.data, meta);
 
-        --this.#active;
+        if (meta.n === true) {
+          this.#active--;
+        }
 
         return r;
       };
