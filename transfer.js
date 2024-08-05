@@ -45,6 +45,7 @@ class TP {
       const errobj = Object.assign({}, err);
       errobj.message = err.message;
       errobj.name = err.name || 'Error';
+      errobj.stack = err.stack;
 
       out.error = errobj;
     }
@@ -70,9 +71,26 @@ class TP {
     }
 
     let result = null;
-    const err = null;
+    let err = null;
     if (!data.error) {
       result = data.res;
+    } else {
+      err = new Error(data.error.message);
+
+      for (const [key, value] of Object.entries(data.error)) {
+        err[key] = value;
+      }
+
+      if (!data.sync) {
+        console.log(
+          'client',
+          'unexcepted_async_error',
+          clientOptions,
+          data,
+          err
+        );
+        return true;
+      }
     }
 
     if (!data.sync) {

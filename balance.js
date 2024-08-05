@@ -144,6 +144,8 @@ export default class BalanceClient {
               }
 
               return done({ err: 'all-targets-overloaded', msg });
+            } else {
+              return done({ err, msg });
             }
           });
       });
