@@ -149,6 +149,10 @@ export default class Micro {
     });
   }
 
+  get offline () {
+    return this.#stopped;
+  }
+
   // no emitter yet
   on () {}
 

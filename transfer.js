@@ -33,6 +33,18 @@ class TP {
       sync: data.sync
     };
 
+    // we send overload message when the service stopped
+    // responding
+    if (this.mc.offline) {
+      const errobj = {};
+      errobj.message = 'retry_later_err_overload';
+      errobj.name = 'Error';
+
+      out.error = errobj;
+
+      return out;
+    }
+
     try {
       const response = await this.mc[METHODS[data.k]](
         data.p || data.args,
