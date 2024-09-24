@@ -125,7 +125,21 @@ export default class BalanceClient {
         target.action
           .call(mc, msg, meta)
           .then(function (msg, _meta) {
-            stats.responseTime = new Date() - meta.start;
+            // we don't really need this right now, it slows down as
+            // new Date() and even hrtime is suprisingly expensive and it is
+            // not utilized, our default rating strategy is none at all. We
+            // simply go round robin and fail fast. The service itself decides
+            // if it wants to accept a request or answer
+            // retry_later_err_overload, a service does get circuit breaked at
+            // that time and wont be retried too fast. A system that has too
+            // sensitive overload metrics, may be adjusted properly and a
+            // system that truly is overloaded will start responding with no
+            // targets available.
+            // If overload metrics are in sync with autoscaling, everything
+            // should be usually fine.
+            if (process.env.METRICS) {
+              stats.responseTime = new Date() - meta.start;
+            }
             done(null, msg, _meta);
           })
           .catch((err) => {
@@ -136,7 +150,7 @@ export default class BalanceClient {
             ) {
               // only error on controlled overload errors
               errored();
-              if (++trys < 3) {
+              if (++trys < 10) {
                 return setTimeout(
                   () => tryCall(),
                   me.options.circuitBreaker.retryTimeout

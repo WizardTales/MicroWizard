@@ -234,6 +234,9 @@ export default function transport (opts, mc) {
     host: '0.0.0.0',
     port: 10201,
     timeout: 5555,
+    // fail fast, this connect timeout only really comes to play during
+    // initial and re-connects
+    connectTimeout: 355,
     ...opts
   };
   const tp = new TP(

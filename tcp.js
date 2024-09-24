@@ -239,11 +239,23 @@ export const client = function (options, tp) {
     const send = function (spec, topic, sendDone) {
       sendDone(null, function (args, done, meta) {
         // const self = this;
-        const timeout = setTimeout(() => {
+        let timedout = false;
+        const connectTimeout = setTimeout(() => {
+          timedout = true;
           done('timeout');
-        }, clientOptions.timeout);
+        }, meta.$c_to || clientOptions.connectTimeout);
 
         getClient(function (stringifier) {
+          if (!timedout) {
+            clearTimeout(connectTimeout);
+          } else {
+            return;
+          }
+
+          const timeout = setTimeout(() => {
+            done('timeout');
+          }, clientOptions.timeout);
+
           function finish () {
             clearTimeout(timeout);
             done.apply(done, arguments);
