@@ -7,6 +7,8 @@ import Ndjson from 'ndjson';
 import Reconnect from 'reconnect-core';
 
 const internals = {};
+const RECOOINT = 1000 * 60 * 2;
+const RECONAWAIT = RECOOINT + 1000 * 60;
 
 export const listen = function (opts, tp) {
   return function (args, callback, reduceActive) {
@@ -20,6 +22,13 @@ export const listen = function (opts, tp) {
         noDelay: true
       },
       function (connection) {
+        connection.setTimeout(RECONAWAIT);
+        connection.on('timeout', () => {
+          if (process.env.TRACE?.includes('MW:D')) {
+            console.log('Ending connection');
+          }
+          connection.end();
+        });
         if (process.env.DEBUG) {
           console.log(
             'listen',
@@ -38,6 +47,12 @@ export const listen = function (opts, tp) {
           connection.end();
         });
         parser.on('data', async (data) => {
+          // health ping
+          if (data.h === 1) {
+            stringifier.write({ h: 2 });
+            return;
+          }
+
           if (data instanceof Error) {
             const out = {};
             out.input = data.input;
@@ -146,6 +161,7 @@ export const client = function (options, tp) {
         : clientOptions.host;
 
     const connect = function () {
+      let interval;
       if (process.env.DEBUG) {
         console.log('client', type, 'send-init', '', '', clientOptions);
       }
@@ -154,11 +170,35 @@ export const client = function (options, tp) {
         { failAfter: clientOptions.failAfter || 3 },
         function (stream) {
           conStream = stream;
-          const msger = internals.clientMessager(clientOptions, tp);
+          const keepalive = { called: false };
+          const msger = internals.clientMessager(clientOptions, tp, keepalive);
           const parser = Ndjson.parse();
           stringifier = Ndjson.stringify();
 
           stream.pipe(parser).pipe(msger).pipe(stringifier).pipe(stream);
+
+          interval = setInterval(() => {
+            if (established === false) {
+              clearInterval(interval);
+              interval = null;
+              return;
+            }
+            stringifier.write({ h: 1 });
+            setTimeout(() => {
+              if (keepalive.called) {
+                keepalive.called = false;
+              } else {
+                // if the connection is dead for whatever reason we close
+                // the connection and only restablish upon request
+                reconnect.disconnect();
+                internals.closeConnections([conStream]);
+                // mark this disconnected
+                connection = null;
+                clearInterval(interval);
+                interval = null;
+              }
+            }, 1000 * 5);
+          }, RECOOINT);
 
           if (!established) reconnect.emit('s_connected', stringifier);
           established = true;
@@ -192,10 +232,16 @@ export const client = function (options, tp) {
           );
         }
 
+        clearInterval(interval);
+        interval = null;
+
         established = false;
       });
       reconnect.on('error', function (err) {
         console.log('client', type, 'error', '', '', clientOptions, err.stack);
+
+        clearInterval(interval);
+        interval = null;
       });
 
       reconnect.on('fail', function (err) {
@@ -210,8 +256,13 @@ export const client = function (options, tp) {
           err?.stack
         );
 
+        clearInterval(interval);
+        interval = null;
+
         reconnect.disconnect();
         internals.closeConnections([conStream]);
+        // mark this disconnected
+        connection = null;
       });
 
       reconnect.connect({
@@ -220,6 +271,9 @@ export const client = function (options, tp) {
       });
 
       tp.onClose(async function () {
+        clearInterval(interval);
+        interval = null;
+
         reconnect.disconnect();
         internals.closeConnections([conStream]);
       });
@@ -274,10 +328,18 @@ export const client = function (options, tp) {
   };
 };
 
-internals.clientMessager = function (options, tp) {
+internals.clientMessager = function (options, tp, keepalive) {
   const messager = new Stream.Duplex({ objectMode: true });
   messager._read = function () {};
   messager._write = function (data, enc, callback) {
+    // we always reset the value on any traffic
+    keepalive.called = true;
+
+    // keepalive traffic, this is fine ignore
+    if (data?.h === 2) {
+      return callback();
+    }
+
     tp.handleResponse(data, options);
     return callback();
   };
