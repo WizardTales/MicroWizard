@@ -157,6 +157,10 @@ export default class BalanceClient {
                 );
               }
 
+              if ((process.env.TRACES?.indexOf('MW:D') ?? -1) !== -1) {
+                console.error(err);
+              }
+
               return done({ err: 'all-targets-overloaded', msg });
             } else {
               return done({ err, msg });
