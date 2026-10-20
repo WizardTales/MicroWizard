@@ -5,7 +5,7 @@
   "description": "A fast and stable microservice framework, mostly compatible with senecas user API",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/*.test.js",
     "lintfix": "lint-staged",
     "prepare": "husky"
   },
