@@ -35,6 +35,11 @@ if (ROLE === 'base') {
     return { code: 200, name: NAME, n: msg.n };
   });
 
+  mc.add('service:demo,command:peers', async () => ({
+    code: 200,
+    peers: mc.peers('service:demo,command:*')
+  }));
+
   mc.add('service:demo,event:happened', async (msg, meta) => {
     out({ ev: 'got', what: 'event', n: msg.n, net: meta.n === true });
     return { code: 200, name: NAME };

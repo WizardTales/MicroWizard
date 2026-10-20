@@ -314,6 +314,30 @@ export default class Micro {
   }
 
   /**
+   * The ids of the other instances that serve `pin` -- for a service that
+   * splits work among its instances. This one is not among them.
+   */
+  peers (pin) {
+    const want = convertPin(pin)
+      .c.map((x) => `${x.p}/${x.c}`)
+      .join(',');
+    const out = [];
+
+    for (const [id, served] of this.#instances) {
+      const serves = Object.values(served).some(
+        (t) =>
+          convertPin(t.pin)
+            .c.map((x) => `${x.p}/${x.c}`)
+            .join(',') === want
+      );
+
+      if (serves) out.push(id);
+    }
+
+    return out.sort();
+  }
+
+  /**
    * Send to one instance in particular, by its id: over whichever of its
    * pins covers the message, retried on that instance and no other (see
    * BalanceClient#deliverTo), answered with what it answered.

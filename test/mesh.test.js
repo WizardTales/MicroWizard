@@ -85,7 +85,7 @@ test.before(async () => {
   await Promise.all([a.ready, b.ready, c.ready]);
 
   // until every instance can reach every other one by its id
-  for (const [from, to] of [[c, a], [c, b], [a, b], [b, c]]) {
+  for (const [from, to] of [[c, a], [c, b], [a, b], [b, c], [a, c], [b, a]]) {
     for (let i = 0; ; i++) {
       const r = await from.act(POKE, { n: 0, kind: 'probe' }, to.id);
       if (!r.err) break;
@@ -156,6 +156,12 @@ test('observe: every instance gets it once, nothing goes round again', async () 
   }
   assert.ok(c.got('event').find((e) => e.n === 7).net === false);
   assert.ok(a.got('event').find((e) => e.n === 7).net === true);
+});
+
+test('peers: the others serving a pin, without this one', async () => {
+  const r = await c.act('service:demo,command:peers', {});
+
+  assert.deepEqual(r.res.peers, [a.id, b.id].sort());
 });
 
 test('to: an instance that left the mesh is given up on', async () => {
