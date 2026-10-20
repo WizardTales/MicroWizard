@@ -80,9 +80,9 @@ export default class BalanceClient {
     const send = function (msg, meta) {
       const targetstate = me.targets[pg];
 
-      if (model === 'observe') {
+      if (model !== 'consume') {
         return Promise.fromCallback((reply) =>
-          me.observe(this, msg, targetstate, reply, meta)
+          me[model](this, msg, targetstate, reply, meta)
         );
       }
 
@@ -181,15 +181,59 @@ export default class BalanceClient {
   }
 
   /**
+   * Deliver to one target, retrying that target and no other: for a
+   * message that has to reach this target in particular. Tried again with
+   * a growing pause when it could not be delivered -- the same conditions
+   * consume moves on to the next target for, a timeout or an overloaded
+   * target -- and given up when the target has left the mesh or its
+   * retries are spent. An error the target answered with is its answer and
+   * is not retried. Every attempt has an id of its own, since answers are
+   * matched by id.
+   */
+  async deliverTo (mc, msg, targetState, target, meta = {}) {
+    const {
+      retries = 5,
+      backoff = 100,
+      maxBackoff = 5000
+    } = this.options.retry || this.options.observe || {};
+
+    for (let attempt = 0; ; ++attempt) {
+      if (targetState.targets[target.id] !== target) {
+        throw Object.assign(new Error('target left the mesh'), {
+          code: 'no-target'
+        });
+      }
+
+      try {
+        return await target.action.call(mc, msg, { ...meta, id: uid() });
+      } catch (err) {
+        const undelivered =
+          err === 'timeout' ||
+          err?.message === 'timeout' ||
+          err?.details?.message === 'retry_later_err_overload' ||
+          err?.message === 'retry_later_err_overload';
+
+        if (!undelivered || attempt >= retries) {
+          if ((process.env.TRACES?.indexOf('MW:D') ?? -1) !== -1) {
+            console.error('deliverTo: gave up on', target.id, err);
+          }
+
+          throw err;
+        }
+
+        await Promise.delay(Math.min(backoff * 2 ** attempt, maxBackoff));
+      }
+    }
+  }
+
+  /**
    * Deliver to every target of the pin, for messages that every instance of
    * a service has to see (an event, a cache to drop) rather than one of
    * them to answer.
    *
    * Going on to another target, which is what the circuit breaker does for
    * consume, would be wrong here: the other one gets the message anyway.
-   * Each target is retried by itself with a growing pause instead, and
-   * given up when it has left the mesh or when its retries are spent. Every
-   * delivery has an id of its own, since the answers are matched by id.
+   * Each target is retried by itself instead, see deliverTo.
    *
    * Answers with how many targets got it and how many did not; whatever a
    * target answered is not passed on. Order is not kept: a message that
@@ -197,34 +241,15 @@ export default class BalanceClient {
    */
   observe (mc, msg, targetState, done, meta = {}) {
     const targets = Object.values(targetState?.targets || {});
-    const {
-      retries = 5,
-      backoff = 100,
-      maxBackoff = 5000
-    } = this.options.observe || {};
 
-    const deliver = async (target) => {
-      for (let attempt = 0; ; ++attempt) {
-        if (targetState.targets[target.id] !== target) return false;
-
-        try {
-          await target.action.call(mc, msg, { ...meta, id: uid() });
-          return true;
-        } catch (err) {
-          if (attempt >= retries) {
-            if ((process.env.TRACES?.indexOf('MW:D') ?? -1) !== -1) {
-              console.error('observe: gave up on', target.id, err);
-            }
-
-            return false;
-          }
-
-          await Promise.delay(Math.min(backoff * 2 ** attempt, maxBackoff));
-        }
-      }
-    };
-
-    Promise.all(targets.map(deliver)).then((got) => {
+    Promise.all(
+      targets.map((target) =>
+        this.deliverTo(mc, msg, targetState, target, meta).then(
+          () => true,
+          () => false
+        )
+      )
+    ).then((got) => {
       const delivered = got.filter(Boolean).length;
 
       done(null, { delivered, failed: got.length - delivered });

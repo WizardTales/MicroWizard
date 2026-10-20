@@ -320,6 +320,14 @@ function mesh (options, mc) {
                   );
 
                 if (ignoreClient) {
+                  // not a target for this pin -- the handler here answers
+                  // it -- but the other instance can still be addressed by
+                  // its id, see Micro#act's `to`
+                  if (!targetMap[pinConfig.id]) {
+                    targetMap[pinConfig.id] = 'address';
+                    clientInstance.client({ ...pinConfig, addressOnly: true });
+                  }
+
                   return;
                 }
 
@@ -695,6 +703,8 @@ function makeIntern () {
 
       pinConfig.pin = canonicalPin?.[0] ?? canonicalPin;
       pinConfig.id = utilPattern(pinConfig) + '~' + meta.identifier$;
+      // the Micro instance behind it, which act's `to` addresses
+      pinConfig.instance = meta.instance;
 
       return pinConfig;
     }

@@ -54,6 +54,12 @@ const convertPin = (pin) => {
   return { c: final.sort((a, b) => (a.p < b.p ? -1 : a.p < b.p ? 1 : 0)) };
 };
 
+/** Does the pin `pin` (as listened on) take a message with parts `pat`? */
+const covers = (pin, pat) =>
+  convertPin(pin).c.every(({ p, c }) =>
+    c === 1 ? pat.includes(p) : pat.some((x) => x.startsWith(`${p}:`))
+  );
+
 export const convertData = (pin) => {
   const r = /([a-zA-Z0-9_-]+)(?:\s+)?:([^,]+)/g;
   let t;
@@ -109,6 +115,8 @@ export default class Micro {
   #active = 0;
   #clients = {};
   #loaded = {};
+  // remote instances by their id: what each serves, for act's `to`
+  #instances = new Map();
 
   constructor (options = {}) {
     if (options.debug) {
@@ -176,6 +184,22 @@ export default class Micro {
       const client = await Promise.fromCallback((reply) =>
         this.#transport.client(config, reply)
       );
+
+      if (config.instance) {
+        const served = this.#instances.get(config.instance) || {};
+        served[config.id] = {
+          id: config.id,
+          pin: config.pin,
+          action (msg, meta) {
+            return client.send.call(this, msg, meta);
+          }
+        };
+        this.#instances.set(config.instance, served);
+      }
+
+      // an instance serving a pin this one serves as well: addressable by
+      // its id, but no target for the pin
+      if (config.addressOnly) return;
 
       const me = this;
 
@@ -278,7 +302,39 @@ export default class Micro {
   }
 
   removeClient (msg) {
+    const { instance, id } = msg.config || {};
+    const served = instance && this.#instances.get(instance);
+
+    if (served) {
+      delete served[id];
+      if (!Object.keys(served).length) this.#instances.delete(instance);
+    }
+
     return this.#balancer.removeClient(msg);
+  }
+
+  /**
+   * Send to one instance in particular, by its id: over whichever of its
+   * pins covers the message, retried on that instance and no other (see
+   * BalanceClient#deliverTo), answered with what it answered.
+   */
+  async #actOn (to, pat, msg, meta) {
+    const served = this.#instances.get(to) || {};
+    const target = Object.values(served).find((t) => covers(t.pin, pat));
+
+    if (!target) {
+      const err = new Error(`no-target: no instance ${to} serving this`);
+      err.code = 'no-target';
+      throw err;
+    }
+
+    return this.#balancer.deliverTo(
+      this,
+      msg,
+      { targets: served },
+      target,
+      { ...meta, to: undefined }
+    );
   }
 
   use (module, options) {
@@ -486,6 +542,11 @@ export default class Micro {
     }
 
     pat = pat.sort();
+
+    // addressed to another instance: that one answers, not whoever would
+    if (meta.to && meta.to !== this.id) {
+      return this.#actOn(meta.to, pat, Object.assign({}, xConv, y), meta);
+    }
 
     const pin = this.#matchPin(pat);
 
