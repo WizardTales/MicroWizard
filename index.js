@@ -210,12 +210,71 @@ export default class Micro {
 
       func.client = true;
 
-      if (Array.isArray(pin)) {
-        pin.map((pin) => this.add(pin, func));
-      } else {
-        this.add(pin, func);
+      const pins = Array.isArray(pin) ? pin : [pin];
+
+      for (const p of pins) {
+        this.add(p, func);
+
+        if (config.model === 'observe') this.#observeHere(p, func);
       }
     }
+  }
+
+  /**
+   * A pin this instance serves and observes: what is acted on here goes to
+   * the handler here and, without waiting for them, to every other
+   * instance; what comes from another instance goes to the handler here
+   * only -- passed on again, it would go round for ever. The handler's
+   * answer is the answer.
+   *
+   * The pin observed may be wider than the handlers serving it here
+   * (`event:*` against a handler for `event:happened`); every handler it
+   * covers is wired up.
+   */
+  #observeHere (pin, remote) {
+    for (const node of this.#covered(pin)) {
+      const local = node.fl.find((f) => !f.client && !f.observes);
+
+      if (!local) continue;
+
+      const both = (d, meta = {}) => {
+        if (meta.n !== true) {
+          Promise.resolve()
+            .then(() => remote.call(this, d.data, { ...meta }))
+            .catch(() => true);
+        }
+
+        return local(d, meta);
+      };
+
+      both.observes = true;
+      node.f = both;
+    }
+  }
+
+  /** The nodes of the pin tree with a handler that `pin` covers. */
+  #covered (pin) {
+    let level = [this.#pinDB];
+
+    for (const { p, c } of convertPin(pin).c) {
+      const next = [];
+
+      for (const node of level) {
+        if (c === 1) {
+          if (node.n[p]) next.push(node.n[p]);
+        } else {
+          if (node.s[p]) next.push(node.s[p]);
+
+          for (const [k, v] of Object.entries(node.n)) {
+            if (k.startsWith(`${p}:`)) next.push(v);
+          }
+        }
+      }
+
+      level = next;
+    }
+
+    return level.filter((node) => node.f);
   }
 
   removeClient (msg) {

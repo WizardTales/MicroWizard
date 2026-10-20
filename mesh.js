@@ -310,9 +310,14 @@ function mesh (options, mc) {
                 // TODO: how to handle local override?
                 // const actmeta = clientInstance.find(pin?.[0] ?? pin);
                 // const ignoreClient = !!(actmeta && !actmeta.client);
-                const ignoreClient = !!listen.find(
-                  (x) => utilPattern(x.pin) === utilPattern(pinConfig.pin)
-                );
+                // A pin this instance serves itself is answered here. Not
+                // so for observe: what every instance has to see goes to
+                // the others of its kind as well.
+                const ignoreClient =
+                  config.model !== 'observe' &&
+                  !!listen.find(
+                    (x) => utilPattern(x.pin) === utilPattern(pinConfig.pin)
+                  );
 
                 if (ignoreClient) {
                   return;

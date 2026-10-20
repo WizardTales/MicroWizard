@@ -72,11 +72,19 @@ export default class BalanceClient {
       this.targets[pg] = {};
     }
 
-    const model = 'consume';
+    // consume: one target of all that serve the pin, the next one if it
+    // fails. observe: every target, each one retried on its own.
+    const model = msg.model === 'observe' ? 'observe' : 'consume';
     const me = this;
 
     const send = function (msg, meta) {
       const targetstate = me.targets[pg];
+
+      if (model === 'observe') {
+        return Promise.fromCallback((reply) =>
+          me.observe(this, msg, targetstate, reply, meta)
+        );
+      }
 
       if (targetstate.visigoth) {
         return Promise.fromCallback((reply) =>
@@ -170,6 +178,57 @@ export default class BalanceClient {
     }
 
     tryCall();
+  }
+
+  /**
+   * Deliver to every target of the pin, for messages that every instance of
+   * a service has to see (an event, a cache to drop) rather than one of
+   * them to answer.
+   *
+   * Going on to another target, which is what the circuit breaker does for
+   * consume, would be wrong here: the other one gets the message anyway.
+   * Each target is retried by itself with a growing pause instead, and
+   * given up when it has left the mesh or when its retries are spent. Every
+   * delivery has an id of its own, since the answers are matched by id.
+   *
+   * Answers with how many targets got it and how many did not; whatever a
+   * target answered is not passed on. Order is not kept: a message that
+   * had to be retried can arrive after one sent later.
+   */
+  observe (mc, msg, targetState, done, meta = {}) {
+    const targets = Object.values(targetState?.targets || {});
+    const {
+      retries = 5,
+      backoff = 100,
+      maxBackoff = 5000
+    } = this.options.observe || {};
+
+    const deliver = async (target) => {
+      for (let attempt = 0; ; ++attempt) {
+        if (targetState.targets[target.id] !== target) return false;
+
+        try {
+          await target.action.call(mc, msg, { ...meta, id: uid() });
+          return true;
+        } catch (err) {
+          if (attempt >= retries) {
+            if ((process.env.TRACES?.indexOf('MW:D') ?? -1) !== -1) {
+              console.error('observe: gave up on', target.id, err);
+            }
+
+            return false;
+          }
+
+          await Promise.delay(Math.min(backoff * 2 ** attempt, maxBackoff));
+        }
+      }
+    };
+
+    Promise.all(targets.map(deliver)).then((got) => {
+      const delivered = got.filter(Boolean).length;
+
+      done(null, { delivered, failed: got.length - delivered });
+    });
   }
 
   addTarget (config, pat, action) {
