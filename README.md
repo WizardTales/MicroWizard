@@ -215,6 +215,66 @@ console.log(result);
 // object definition will outperform, so use this when you need it and not by default
 ```
 
+### Reaching every instance: observe
+
+A pin is listened on with a model. `consume`, the default, hands a message
+to one of the instances serving the pin and moves on to the next one when
+it fails (circuit breaking). A pin that every instance has to hear -- an
+event, a cache to drop -- is listened on with `observe`:
+
+```javascript
+mc.use('mesh-ng', {
+  listen: [
+    { pin: 'service:test,command:*', model: 'consume', type: 'tcp' },
+    { pin: 'service:test,event:*', model: 'observe', type: 'tcp' }
+  ]
+});
+
+await mc.act('service:test,event:changed', { id: 42 });
+```
+
+The message goes to the handler of the instance that sent it and, without
+waiting, to every other instance serving the pin -- the other instances of
+the sender's own service included. Moving on to another instance would be
+wrong here, so each instance is retried on its own instead, with
+exponential backoff, and given up when it leaves the mesh. Only what could
+not be delivered is retried (a timeout, an overloaded instance); an error a
+handler answers with is its answer. Delivery is at most once per instance
+and unordered. A message that came in from the network goes to the local
+handler only, so nothing goes round twice. The answer is the local
+handler's.
+
+### Reaching one instance: to
+
+Every instance has an id (`mc.id`), the one it joined the mesh with. A
+message for one instance in particular is sent with `to`:
+
+```javascript
+const result = await mc.act(
+  'service:test,command:wake',
+  { id: 42 },
+  { to: otherInstanceId }
+);
+```
+
+It goes over whichever pin of that instance takes the message -- also a pin
+the sender serves itself, which `consume` would answer locally -- and is
+retried on that instance and no other, the same way `observe` retries.
+An id nobody has is `no-target` at once; `to` naming the sender itself is
+answered locally.
+
+`mc.peers(pin)` gives the ids of the other instances serving a pin, for a
+service that splits work among its instances.
+
+Retries for both are set when the instance is made, these are the
+defaults:
+
+```javascript
+const mc = new MicroWizard({
+  balance: { retry: { retries: 5, backoff: 100, maxBackoff: 5000 } }
+});
+```
+
 ## A starting point
 
 Look in the examples folder for a full project example. https://github.com/WizardTales/MicroWizard/tree/master/example/full
