@@ -69,14 +69,14 @@ class TP {
     data.sync = undefined === data.sync ? true : data.sync;
 
     if (data.k !== 'res') {
-      if (this._context.options.warn.invalid_kind) {
+      if (this.#context.opts.warn?.invalid_kind) {
         console.log('client', 'invalid_kind_res', clientOptions, data);
       }
       return false;
     }
 
     if (data.id === null) {
-      if (this._context.options.warn.no_message_id) {
+      if (this.#context.opts.warn?.no_message_id) {
         console.log('client', 'no_message_id', clientOptions, data);
       }
       return false;
@@ -118,7 +118,7 @@ class TP {
     } else {
       // this can result when there was a slow request still answering after
       // timeout
-      if (this.#context.options.warn.unknown_message_id) {
+      if (this.#context.opts.warn?.unknown_message_id) {
         console.log('client', 'unknown_message_id', clientOptions, data);
       }
       return false;
