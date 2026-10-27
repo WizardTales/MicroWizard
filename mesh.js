@@ -209,6 +209,7 @@ function mesh (options, mc) {
             const clientInstance = instance;
             const config = utilClean(rawConfig || {}, { proto: false });
             let aliveBases = 0;
+            let rejoining = false;
             const baseName = {};
 
             if (!config.pin && !config.pins) {
@@ -353,8 +354,10 @@ function mesh (options, mc) {
               if (closed) return;
               if (pattern(meta.config.pin[0]) === 'base:true,role:mesh') {
                 baseLeft = true;
-                --aliveBases;
+                // a base we never counted, or one that left before, must not
+                // count down again
                 if (baseName[meta.instance]) {
+                  --aliveBases;
                   delete baseName[meta.instance];
                 }
               }
@@ -395,10 +398,17 @@ function mesh (options, mc) {
                 options.discover.rediscover &&
                 baseLeft === true &&
                 aliveBases < 2 &&
-                cleaningUp !== true
+                cleaningUp !== true &&
+                !rejoining
               ) {
-                const members = sneeze.members();
+                // one rejoin chain at a time, however many bases leave
+                rejoining = true;
+                const failEvent = isbase ? 'retry' : 'error';
                 const rejoin = function rejoin () {
+                  if (closed) {
+                    rejoining = false;
+                    return;
+                  }
                   intern.findBases(mc, options, rif, function (foundBases) {
                     if (foundBases.length === 0) {
                       return setTimeout(rejoin, 1111);
@@ -415,23 +425,29 @@ function mesh (options, mc) {
 
                     sneezeOpts.bases = bases;
 
-                    // retry on error
-                    if (isbase) {
-                      sneeze.once('retry', function () {
-                        // sneeze.leave();
-                        setTimeout(rejoin, 1111);
-                      });
-                    } else {
-                      sneeze.once('error', function () {
-                        // sneeze.leave();
-                        setTimeout(rejoin, 1111);
-                      });
-                    }
+                    // each attempt ends once, by the join callback or by an
+                    // error (retry on a base) from sneeze, and takes its
+                    // listener with it
+                    let settled = false;
+                    const settle = function () {
+                      if (settled) return false;
+                      settled = true;
+                      sneeze.removeListener(failEvent, onFail);
+                      return true;
+                    };
+                    const onFail = function () {
+                      if (settle()) setTimeout(rejoin, 1111);
+                    };
+                    sneeze.once(failEvent, onFail);
+
                     sneeze._swim.join(bases, (err) => {
+                      if (!settle()) return;
                       if (err) {
                         console.log({ msg: 'rejoin failed, try again' });
                         setTimeout(rejoin, 1111);
+                        return;
                       }
+                      rejoining = false;
                     });
                   });
                 };
