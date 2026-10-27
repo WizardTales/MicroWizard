@@ -124,14 +124,10 @@ export default class BalanceClient {
           return done({ err: 'no-current-target', msg });
         }
 
-        // if (trys > 0) {
-        //   meta.mi += trys;
-        //   meta.tx += trys;
-        //   meta.id = `${meta.mi}/${meta.tx}`;
-        // }
-
+        // answers are matched by id: a retry gets an id of its own, or a
+        // late answer to the try before is taken for its answer
         target.action
-          .call(mc, msg, meta)
+          .call(mc, msg, trys > 0 ? { ...meta, id: uid() } : meta)
           .then(function (msg, _meta) {
             // we don't really need this right now, it slows down as
             // new Date() and even hrtime is suprisingly expensive and it is
